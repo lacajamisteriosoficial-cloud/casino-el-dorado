@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Dorado — Panel Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0A0A0F; --bg2: #111118; --bg3: #17171F; --bg4: #1E1E28;
+  --gold: #F0B429; --gold-dim: #8B6914; --gold-bg: rgba(240,180,41,0.08);
+  --red: #EF4444; --green: #10B981; --blue: #3B82F6; --purple: #8B5CF6;
+  --border: rgba(255,255,255,0.07); --border-gold: rgba(240,180,41,0.25);
+  --text: #E2E2E6; --text-dim: #666680; --text-muted: #44445A;
+  --accent: var(--gold);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+
+/* LOGIN SCREEN */
+#admin-login {
+  position:fixed;inset:0;z-index:1000;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+}
+.login-box {
+  width:100%;max-width:400px;padding:20px;
+}
+.login-logo {
+  text-align:center;margin-bottom:32px;
+}
+.login-logo-text {
+  font-family:'Space Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--gold);letter-spacing:4px;
+}
+.login-logo-sub { font-size:.7rem;letter-spacing:3px;color:var(--text-dim);text-transform:uppercase;margin-top:6px; }
+.login-card {
+  background:var(--bg2);border:1px solid var(--border-gold);padding:32px;
+}
+.l-label{display:block;font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;font-family:'Space Mono',monospace;}
+.l-input{width:100%;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);font-size:.9rem;outline:none;margin-bottom:16px;font-family:'DM Sans',sans-serif;transition:border-color .2s;}
+.l-input:focus{border-color:var(--gold-dim);}
+.l-btn{width:100%;padding:14px;background:var(--gold);border:none;color:#0A0805;font-family:'Space Mono',monospace;font-size:.85rem;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .2s;}
+.l-btn:hover{background:#F5C55A;}
+.l-err{padding:10px 14px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:var(--red);font-size:.8rem;margin-bottom:14px;display:none;}
+
+/* APP */
+#admin-app { display:none; flex-direction:column; min-height:100vh; }
+
+/* SIDEBAR */
+.sidebar {
+  position:fixed;top:0;left:0;bottom:0;
+  width:240px;
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  z-index:50;
+}
+.sidebar-logo {
+  padding:24px 20px;
+  border-bottom:1px solid var(--border);
+}
+.sidebar-logo-text{font-family:'Space Mono',monospace;font-size:.95rem;font-weight:700;color:var(--gold);letter-spacing:2px;}
+.sidebar-logo-sub{font-size:.6rem;letter-spacing:3px;color:var(--text-dim);text-transform:uppercase;margin-top:4px;}
+.sidebar-badge{display:inline-block;padding:2px 8px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.5);color:var(--red);font-size:.6rem;letter-spacing:2px;margin-top:8px;}
+
+.sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto;}
+.nav-section-label{font-size:.55rem;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);padding:8px 8px 4px;margin-top:12px;font-family:'Space Mono',monospace;}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;margin-bottom:2px;
+  border-radius:4px;cursor:pointer;
+  font-size:.85rem;color:var(--text-dim);
+  transition:all .15s;position:relative;
+}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--text);}
+.nav-item.active{background:var(--gold-bg);color:var(--gold);}
+.nav-item.active::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:2px;background:var(--gold);border-radius:0 2px 2px 0;}
+.nav-item .badge{margin-left:auto;background:var(--red);color:#fff;font-size:.6rem;padding:2px 6px;border-radius:10px;min-width:20px;text-align:center;font-family:'Space Mono',monospace;}
+
+.sidebar-footer{padding:16px;border-top:1px solid var(--border);}
+.admin-info{font-size:.75rem;color:var(--text-dim);margin-bottom:10px;}
+.admin-info strong{color:var(--text);}
+.logout-btn{width:100%;padding:8px;background:transparent;border:1px solid var(--border);color:var(--text-dim);font-size:.72rem;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.logout-btn:hover{border-color:var(--red);color:var(--red);}
+
+/* MAIN CONTENT */
+.main-content{margin-left:240px;flex:1;display:flex;flex-direction:column;}
+.topbar{
+  height:60px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px;background:var(--bg2);
+  position:sticky;top:0;z-index:40;
+}
+.topbar-title{font-family:'Space Mono',monospace;font-size:.85rem;letter-spacing:2px;color:var(--text);}
+.topbar-right{display:flex;align-items:center;gap:16px;}
+.live-badge{display:flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);font-size:.65rem;letter-spacing:2px;color:var(--red);}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--red);animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+
+.page{display:none;padding:32px;max-width:1400px;}
+.page.active{display:block;}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);padding:24px;margin-bottom:20px;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.card-title{font-family:'Space Mono',monospace;font-size:.75rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);}
+
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);padding:20px;transition:border-color .2s;}
+.stat-card:hover{border-color:var(--gold-dim);}
+.stat-val{font-family:'Space Mono',monospace;font-size:1.8rem;font-weight:700;color:var(--text);margin-bottom:6px;}
+.stat-val.gold{color:var(--gold);}
+.stat-val.green{color:var(--green);}
+.stat-val.red{color:var(--red);}
+.stat-label{font-size:.68rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);}
+.stat-sub{font-size:.75rem;color:var(--text-dim);margin-top:4px;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:.82rem;}
+th{text-align:left;padding:10px 14px;font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--border);}
+td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.03);}
+tr:hover td{background:rgba(255,255,255,.02);}
+.badge{display:inline-block;padding:3px 10px;font-size:.65rem;letter-spacing:1px;font-family:'Space Mono',monospace;}
+.badge-green{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:var(--green);}
+.badge-red{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:var(--red);}
+.badge-yellow{background:rgba(240,180,41,.15);border:1px solid rgba(240,180,41,.4);color:var(--gold);}
+.badge-blue{background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:var(--blue);}
+
+/* BUTTONS */
+.btn{padding:8px 18px;font-size:.72rem;letter-spacing:1px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;border:1px solid;font-weight:600;}
+.btn-gold{background:var(--gold);border-color:var(--gold);color:#0A0805;}
+.btn-gold:hover{background:#F5C55A;}
+.btn-outline{background:transparent;border-color:var(--border);color:var(--text-dim);}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold);}
+.btn-red{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.5);color:var(--red);}
+.btn-red:hover{background:rgba(239,68,68,.25);}
+.btn-green{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.5);color:var(--green);}
+.btn-green:hover{background:rgba(16,185,129,.25);}
+.btn-sm{padding:5px 12px;font-size:.68rem;}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;}
+.form-group{margin-bottom:0;}
+.f-label{display:block;font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;font-family:'Space Mono',monospace;}
+.f-input{width:100%;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);font-size:.85rem;outline:none;transition:border-color .2s;font-family:'DM Sans',sans-serif;}
+.f-input:focus{border-color:var(--gold-dim);}
+
+/* CAJAS STATUS */
+.status-bar{display:flex;align-items:center;gap:20px;padding:16px 20px;background:var(--bg3);border:1px solid var(--border);margin-bottom:20px;flex-wrap:wrap;}
+.status-indicator{width:10px;height:10px;border-radius:50%;}
+.status-open{background:var(--green);box-shadow:0 0 8px var(--green);}
+.status-closed{background:var(--red);}
+.status-countdown{background:var(--gold);animation:blink .5s infinite;}
+.status-finished{background:var(--blue);}
+
+.boxes-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;}
+.box{aspect-ratio:1;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.75rem;position:relative;cursor:default;transition:all .2s;}
+.box.taken{background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.5);}
+.box.pending{background:rgba(240,180,41,.1);border-color:rgba(240,180,41,.4);}
+.box.winner{background:rgba(16,185,129,.2);border-color:rgba(16,185,129,.7);animation:winner-pulse 1s infinite;}
+.box.empty-winner{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.5);}
+@keyframes winner-pulse{0%,100%{box-shadow:0 0 6px var(--green);}50%{box-shadow:0 0 20px var(--green);}}
+
+/* CHAT */
+.chat-container{display:grid;grid-template-columns:240px 1fr;gap:16px;height:500px;}
+.chat-sessions{background:var(--bg3);border:1px solid var(--border);overflow-y:auto;}
+.chat-session-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.chat-session-item:hover,.chat-session-item.active{background:rgba(255,255,255,.04);}
+.chat-session-name{font-weight:600;font-size:.85rem;}
+.chat-session-preview{font-size:.72rem;color:var(--text-dim);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-session-badge{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);margin-right:4px;}
+.chat-area{display:flex;flex-direction:column;background:var(--bg3);border:1px solid var(--border);}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.chat-msg{max-width:80%;padding:10px 14px;font-size:.83rem;line-height:1.5;}
+.chat-msg.player{background:rgba(255,255,255,.06);border:1px solid var(--border);align-self:flex-start;}
+.chat-msg.admin{background:rgba(240,180,41,.1);border:1px solid rgba(240,180,41,.25);align-self:flex-end;color:var(--gold);}
+.chat-msg-name{font-size:.65rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;}
+.chat-footer{display:flex;gap:10px;padding:12px;border-top:1px solid var(--border);}
+.chat-input{flex:1;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);font-size:.85rem;outline:none;font-family:'DM Sans',sans-serif;}
+.chat-input:focus{border-color:var(--gold-dim);}
+
+/* PLAYER TAG */
+.player-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(255,255,255,.04);border:1px solid var(--border);font-size:.75rem;margin:3px;}
+.player-chip.ready{border-color:rgba(16,185,129,.5);background:rgba(16,185,129,.08);}
+
+/* NOTIFICATIONS */
+#notifications{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;}
+.notif{padding:12px 20px;font-size:.82rem;border:1px solid;max-width:320px;animation:notif-in .3s ease;pointer-events:all;}
+.notif.success{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.5);color:var(--green);}
+.notif.error{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.5);color:var(--red);}
+.notif.warning{background:rgba(240,180,41,.12);border-color:rgba(240,180,41,.4);color:var(--gold);}
+@keyframes notif-in{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+
+@media(max-width:768px){.sidebar{display:none;}.main-content{margin-left:0;}}
+</style>
+</head>
+<body>
+
+<div id="notifications"></div>
+
+<!-- LOGIN -->
+<div id="admin-login">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-text">EL DORADO</div>
+      <div class="login-logo-sub">Panel de Administración</div>
+    </div>
+    <div class="login-card">
+      <div class="l-err" id="l-err"></div>
+      <label class="l-label">Usuario Admin</label>
+      <input class="l-input" id="l-user" type="text" placeholder="admin" autocomplete="username">
+      <label class="l-label">Contraseña</label>
+      <input class="l-input" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+      <button class="l-btn" onclick="adminLogin()">INGRESAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="admin-app" style="display:flex">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-text">♦ EL DORADO</div>
+      <div class="sidebar-logo-sub">Casino Online</div>
+      <div class="sidebar-badge">ADMIN</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">General</div>
+      <div class="nav-item active" onclick="showPage('dashboard')">📊 Dashboard</div>
+      <div class="nav-item" onclick="showPage('users')">👥 Usuarios</div>
+      <div class="nav-item" onclick="showPage('deposits')">💰 Depósitos <span class="badge" id="badge-deposits">0</span></div>
+      <div class="nav-item" onclick="showPage('games-hist')">🎮 Historial Juegos</div>
+
+      <div class="nav-section-label">Caja Misteriosa</div>
+      <div class="nav-item" onclick="showPage('cajas')">🎁 Control Live <span class="badge" id="badge-cajas">0</span></div>
+      <div class="nav-item" onclick="showPage('cajas-winners')">🏆 Ganadores</div>
+      <div class="nav-item" onclick="showPage('chat')">💬 Chat Soporte <span class="badge" id="badge-chat">0</span></div>
+
+      <div class="nav-section-label">Sistema</div>
+      <div class="nav-item" onclick="showPage('config')">⚙️ Configuración</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="admin-info">Conectado como <strong>admin</strong></div>
+      <button class="logout-btn" onclick="adminLogout()">Cerrar Sesión</button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">DASHBOARD</div>
+      <div class="topbar-right">
+        <div class="live-badge"><div class="live-dot"></div><span id="viewer-count">0</span> viewers</div>
+        <span style="font-size:.75rem;color:var(--text-dim)" id="topbar-time"></span>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><div class="stat-val gold" id="s-revenue">$0</div><div class="stat-label">Comisiones Totales</div></div>
+        <div class="stat-card"><div class="stat-val" id="s-users">0</div><div class="stat-label">Usuarios Registrados</div></div>
+        <div class="stat-card"><div class="stat-val green" id="s-sessions">0</div><div class="stat-label">Partidas Jugadas</div></div>
+        <div class="stat-card"><div class="stat-val" id="s-active">0</div><div class="stat-label">Activos (24hs)</div></div>
+        <div class="stat-card"><div class="stat-val gold" id="s-pending-dep">$0</div><div class="stat-label">Depósitos Pendientes</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Últimas Transacciones</div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Usuario</th><th>Tipo</th><th>Monto</th><th>Juego</th><th>Estado</th><th>Fecha</th></tr></thead>
+            <tbody id="last-tx"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="page" id="page-users">
+      <div style="display:flex;gap:12px;margin-bottom:20px;">
+        <input class="f-input" id="user-search" placeholder="Buscar usuario o email..." style="max-width:300px" oninput="loadUsers()">
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Usuarios</div><span id="users-count" style="font-size:.75rem;color:var(--text-dim)"></span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Usuario</th><th>Email</th><th>Saldo</th><th>Alias MP</th><th>Estado</th><th>Último Login</th><th>Acciones</th></tr></thead>
+            <tbody id="users-table"></tbody>
+          </table>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <button class="btn btn-outline" onclick="usersPage--; loadUsers()">← Anterior</button>
+          <span id="users-page-info" style="font-size:.75rem;color:var(--text-dim)"></span>
+          <button class="btn btn-outline" onclick="usersPage++; loadUsers()">Siguiente →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEPOSITS -->
+    <div class="page" id="page-deposits">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Depósitos Pendientes</div><button class="btn btn-outline btn-sm" onclick="loadDeposits()">↺ Actualizar</button></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Usuario</th><th>Email</th><th>Monto</th><th>Alias MP</th><th>Op. MP</th><th>Fecha</th><th>Acciones</th></tr></thead>
+            <tbody id="deposits-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- GAMES HISTORY -->
+    <div class="page" id="page-games-hist">
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+        <select class="f-input" id="game-filter" style="max-width:200px" onchange="loadGamesHist()">
+          <option value="">Todos los juegos</option>
+          <option value="blackjack">Blackjack</option>
+          <option value="truco">Truco</option>
+          <option value="ludo">Ludo</option>
+          <option value="jackpot">Jackpot</option>
+          <option value="cajas">Caja Misteriosa</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Historial de Juegos</div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Juego</th><th>Pozo</th><th>Comisión</th><th>Premio</th><th>Ganador</th><th>Estado</th><th>Fecha</th></tr></thead>
+            <tbody id="games-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAJAS MISTERIOSAS -->
+    <div class="page" id="page-cajas">
+      <div class="status-bar">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="status-indicator" id="cajas-status-dot"></div>
+          <span id="cajas-status-text" style="font-family:'Space Mono',monospace;font-size:.8rem">CARGANDO...</span>
+        </div>
+        <div style="font-size:.8rem;color:var(--text-dim)">👥 <span id="cajas-players">0</span>/<span id="cajas-max">10</span> jugadores</div>
+        <div style="font-family:'Space Mono',monospace;font-size:1rem;color:var(--gold)">💰 $<span id="cajas-jackpot">0</span></div>
+        <div id="cajas-timer" style="font-family:'Space Mono',monospace;color:var(--gold)">--:--</div>
+        <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap">
+          <button class="btn btn-gold btn-sm" onclick="cajasAction('force-start')">▶ Forzar Inicio</button>
+          <button class="btn btn-outline btn-sm" onclick="cajasAction('reset')">↺ Resetear</button>
+          <button class="btn btn-outline btn-sm" onclick="togglePagos()">💰 Pagos <span id="badge-cajas-inner">0</span></button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">📊 Estadísticas</div></div>
+            <div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0">
+              <div class="stat-card" style="padding:14px"><div class="stat-val gold" id="cajas-collected">$0</div><div class="stat-label">Recaudado</div></div>
+              <div class="stat-card" style="padding:14px"><div class="stat-val" id="cajas-commission">$0</div><div class="stat-label">Comisión</div></div>
+              <div class="stat-card" style="padding:14px"><div class="stat-val" id="cajas-confirmed">0</div><div class="stat-label">Confirmados</div></div>
+              <div class="stat-card" style="padding:14px"><div class="stat-val red" id="cajas-pending-count">0</div><div class="stat-label">Pend. Pago</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">🎁 Cajas</div></div>
+            <div class="boxes-grid" id="cajas-boxes"></div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">👥 Jugadores</div></div>
+            <div id="cajas-players-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagos flotantes -->
+      <div id="pagos-panel" style="display:none;margin-top:20px">
+        <div class="card">
+          <div class="card-header"><div class="card-title">⏳ Pagos Pendientes</div><button class="btn btn-outline btn-sm" onclick="togglePagos()">Cerrar</button></div>
+          <div id="pagos-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAJAS WINNERS -->
+    <div class="page" id="page-cajas-winners">
+      <div class="card">
+        <div class="card-header"><div class="card-title">🏆 Historial de Ganadores — Caja Misteriosa</div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nombre</th><th>Alias MP</th><th>Premio</th><th>Caja</th><th>Transferido</th><th>Fecha</th><th>Acción</th></tr></thead>
+            <tbody id="cajas-winners-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="page" id="page-chat">
+      <div class="chat-container">
+        <div class="chat-sessions" id="chat-sessions-list"></div>
+        <div class="chat-area" id="chat-area">
+          <div class="chat-messages" id="chat-messages">
+            <div style="text-align:center;color:var(--text-muted);font-size:.82rem;margin:auto">Seleccioná una conversación</div>
+          </div>
+          <div class="chat-footer" id="chat-footer" style="display:none">
+            <input class="chat-input" id="chat-reply-input" placeholder="Responder...">
+            <button class="btn btn-gold btn-sm" onclick="sendChatReply()">Enviar</button>
+            <button class="btn btn-outline btn-sm" onclick="closeChatSession()">Cerrar conv.</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div class="page" id="page-config">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="card">
+          <div class="card-header"><div class="card-title">⚙️ Config Casino Global</div></div>
+          <div class="form-grid" id="config-fields"></div>
+          <button class="btn btn-gold" style="margin-top:20px" onclick="saveGlobalConfig()">Guardar Config</button>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">🎁 Config Caja Misteriosa</div></div>
+          <div class="form-grid">
+            <div><label class="f-label">Precio Entrada</label><input class="f-input" id="cfg-entry" type="number"></div>
+            <div><label class="f-label">Precio Extra</label><input class="f-input" id="cfg-extra" type="number"></div>
+            <div><label class="f-label">Mín Jugadores</label><input class="f-input" id="cfg-min" type="number"></div>
+            <div><label class="f-label">Máx Jugadores</label><input class="f-input" id="cfg-max" type="number"></div>
+            <div><label class="f-label">Total Cajas</label><input class="f-input" id="cfg-boxes" type="number"></div>
+            <div><label class="f-label">Comisión %</label><input class="f-input" id="cfg-comm" type="number"></div>
+            <div><label class="f-label">Tiempo Cierre (seg)</label><input class="f-input" id="cfg-time" type="number"></div>
+            <div><label class="f-label">Alias MP</label><input class="f-input" id="cfg-alias" type="text"></div>
+          </div>
+          <div style="margin-top:14px"><label class="f-label">Mensaje Juego Cerrado</label><input class="f-input" id="cfg-msg" type="text"></div>
+          <button class="btn btn-gold" style="margin-top:16px" onclick="saveCajasConfig()">Guardar Config Cajas</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = window.location.origin + '/api';
+let adminToken = localStorage.getItem('casino_admin_token');
+let currentPage = 'dashboard';
+let usersPage = 1;
+let cajasState = {};
+let currentChatSession = null;
+let chatSessions = [];
+
+// ── Auth ──────────────────────────────────────────────────────
+function checkAdminToken() {
+  if (!adminToken) {
+    document.getElementById('admin-login').style.display = 'flex';
+    document.getElementById('admin-app').style.display = 'none';
+  } else {
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-app').style.display = 'flex';
+    initApp();
+  }
+}
+
+async function adminLogin() {
+  const user = document.getElementById('l-user').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  const errEl = document.getElementById('l-err');
+  errEl.style.display = 'none';
+  try {
+    const res = await fetch(`${API}/auth/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, password: pass })
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
+    adminToken = data.token;
+    localStorage.setItem('casino_admin_token', adminToken);
+    checkAdminToken();
+  } catch (e) {
+    errEl.textContent = 'Error de conexión'; errEl.style.display = 'block';
+  }
+}
+
+function adminLogout() {
+  localStorage.removeItem('casino_admin_token');
+  adminToken = null;
+  checkAdminToken();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('admin-login').style.display !== 'none') adminLogin();
+});
+
+// ── Navigation ────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${id}`).classList.add('active');
+  event?.target?.closest('.nav-item')?.classList.add('active');
+  currentPage = id;
+  const titles = {
+    dashboard:'DASHBOARD', users:'USUARIOS', deposits:'DEPÓSITOS',
+    'games-hist':'HISTORIAL JUEGOS', cajas:'CAJA MISTERIOSA — LIVE',
+    'cajas-winners':'GANADORES CAJA MISTERIOSA', chat:'CHAT SOPORTE', config:'CONFIGURACIÓN'
+  };
+  document.getElementById('topbar-title').textContent = titles[id] || id.toUpperCase();
+  const loaders = {
+    dashboard: loadDashboard, users: loadUsers, deposits: loadDeposits,
+    'games-hist': loadGamesHist, 'cajas-winners': loadCajasWinners,
+    config: loadConfig
+  };
+  if (loaders[id]) loaders[id]();
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+function initApp() {
+  loadDashboard();
+  startCajasPolling();
+  initViewerStream();
+  initChatStream();
+  setInterval(() => {
+    const now = new Date();
+    document.getElementById('topbar-time').textContent =
+      now.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  }, 1000);
+}
+
+// ── AUTH HEADER ───────────────────────────────────────────────
+function authHeaders() {
+  return { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' };
+}
+
+function notify(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `notif ${type}`;
+  el.textContent = msg;
+  document.getElementById('notifications').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const res = await fetch(`${API}/admin/stats`, { headers: authHeaders() });
+    if (res.status === 401) { adminLogout(); return; }
+    const d = await res.json();
+    document.getElementById('s-revenue').textContent = '$' + parseFloat(d.totalRevenue).toLocaleString('es-AR');
+    document.getElementById('s-users').textContent = d.totalUsers;
+    document.getElementById('s-sessions').textContent = d.totalSessions;
+    document.getElementById('s-active').textContent = d.activeUsers24h;
+    document.getElementById('s-pending-dep').textContent = '$' + parseFloat(d.pendingDeposits).toLocaleString('es-AR');
+
+    const tbody = document.getElementById('last-tx');
+    tbody.innerHTML = (d.lastTransactions || []).map(tx => {
+      const pos = ['deposit','prize'].includes(tx.type);
+      return `<tr>
+        <td>${tx.username || '—'}</td>
+        <td>${tx.type}</td>
+        <td style="color:${pos?'var(--green)':'var(--red)'}">${pos?'+':'-'}$${parseFloat(tx.amount).toLocaleString('es-AR')}</td>
+        <td>${tx.game || '—'}</td>
+        <td><span class="badge badge-${tx.status==='approved'?'green':tx.status==='pending'?'yellow':'red'}">${tx.status}</span></td>
+        <td>${new Date(tx.created_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">Sin transacciones</td></tr>';
+  } catch(e) {}
+}
+
+// ── USERS ─────────────────────────────────────────────────────
+async function loadUsers() {
+  const search = document.getElementById('user-search')?.value || '';
+  try {
+    const res = await fetch(`${API}/admin/users?page=${usersPage}&search=${encodeURIComponent(search)}`, { headers: authHeaders() });
+    const d = await res.json();
+    document.getElementById('users-count').textContent = `${d.total} usuarios`;
+    document.getElementById('users-page-info').textContent = `Pág ${d.page} / ${d.pages}`;
+    document.getElementById('users-table').innerHTML = (d.users || []).map(u => `
+      <tr>
+        <td><strong>${u.username}</strong></td>
+        <td>${u.email}</td>
+        <td style="color:var(--gold);font-family:'Space Mono',monospace">$${parseFloat(u.balance).toLocaleString('es-AR')}</td>
+        <td>${u.mp_alias || '—'}</td>
+        <td><span class="badge badge-${u.is_active?'green':'red'}">${u.is_active?'Activo':'Suspendido'}</span></td>
+        <td>${u.last_login ? new Date(u.last_login).toLocaleDateString('es-AR') : 'Nunca'}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick="adjustBalance('${u.id}', '${u.username}')">Ajustar saldo</button>
+          <button class="btn btn-${u.is_active?'red':'green'} btn-sm" onclick="toggleUser('${u.id}', ${!u.is_active})">${u.is_active?'Suspender':'Activar'}</button>
+        </td>
+      </tr>`).join('');
+  } catch(e) {}
+}
+
+async function adjustBalance(userId, username) {
+  const amount = prompt(`Ajustar saldo de ${username}\nIngresá el monto (negativo para descontar):`);
+  if (!amount || isNaN(amount)) return;
+  const reason = prompt('Motivo del ajuste:');
+  if (!reason) return;
+  try {
+    const res = await fetch(`${API}/admin/users/${userId}/adjust-balance`, {
+      method:'POST', headers: authHeaders(),
+      body: JSON.stringify({ amount: parseFloat(amount), reason })
+    });
+    const d = await res.json();
+    if (d.success) { notify(`Saldo ajustado. Nuevo saldo: $${parseFloat(d.newBalance).toLocaleString('es-AR')}`); loadUsers(); }
+    else notify(d.error, 'error');
+  } catch(e) { notify('Error de conexión', 'error'); }
+}
+
+async function toggleUser(userId, activate) {
+  try {
+    await fetch(`${API}/admin/users/${userId}`, {
+      method:'PATCH', headers: authHeaders(),
+      body: JSON.stringify({ isActive: activate })
+    });
+    notify(activate ? 'Usuario activado' : 'Usuario suspendido');
+    loadUsers();
+  } catch(e) {}
+}
+
+// ── DEPOSITS ──────────────────────────────────────────────────
+async function loadDeposits() {
+  try {
+    const res = await fetch(`${API}/admin/deposits/pending`, { headers: authHeaders() });
+    const d = await res.json();
+    const count = (d.deposits || []).length;
+    document.getElementById('badge-deposits').textContent = count;
+    document.getElementById('deposits-table').innerHTML = (d.deposits || []).map(dep => `
+      <tr>
+        <td><strong>${dep.username}</strong></td>
+        <td>${dep.email}</td>
+        <td style="color:var(--gold);font-family:'Space Mono',monospace">$${parseFloat(dep.amount).toLocaleString('es-AR')}</td>
+        <td>${dep.mp_alias || '—'}</td>
+        <td style="font-size:.72rem;color:var(--text-dim)">${dep.mp_operation || '—'}</td>
+        <td>${new Date(dep.created_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+        <td style="display:flex;gap:6px">
+          <button class="btn btn-green btn-sm" onclick="approveDeposit('${dep.id}')">✓ Aprobar</button>
+          <button class="btn btn-red btn-sm" onclick="rejectDeposit('${dep.id}')">✗ Rechazar</button>
+        </td>
+      </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Sin depósitos pendientes</td></tr>';
+  } catch(e) {}
+}
+
+async function approveDeposit(id) {
+  try {
+    const res = await fetch(`${API}/admin/deposits/${id}/approve`, { method:'POST', headers: authHeaders() });
+    const d = await res.json();
+    if (d.success) { notify('Depósito aprobado ✓'); loadDeposits(); loadDashboard(); }
+    else notify(d.error, 'error');
+  } catch(e) { notify('Error', 'error'); }
+}
+
+async function rejectDeposit(id) {
+  if (!confirm('¿Rechazar este depósito?')) return;
+  try {
+    await fetch(`${API}/admin/deposits/${id}/reject`, { method:'POST', headers: authHeaders() });
+    notify('Depósito rechazado', 'warning');
+    loadDeposits();
+  } catch(e) {}
+}
+
+// ── GAMES HISTORY ─────────────────────────────────────────────
+async function loadGamesHist() {
+  const game = document.getElementById('game-filter')?.value || '';
+  try {
+    const res = await fetch(`${API}/admin/games/history?game=${game}`, { headers: authHeaders() });
+    const d = await res.json();
+    document.getElementById('games-table').innerHTML = (d.sessions || []).map(s => `
+      <tr>
+        <td>${s.game}</td>
+        <td>$${parseFloat(s.pot).toLocaleString('es-AR')}</td>
+        <td style="color:var(--gold)">$${parseFloat(s.commission||0).toLocaleString('es-AR')}</td>
+        <td style="color:var(--green)">${s.prize ? '$'+parseFloat(s.prize).toLocaleString('es-AR') : '—'}</td>
+        <td>${s.winner_username || '—'}</td>
+        <td><span class="badge badge-${s.status==='finished'?'green':'blue'}">${s.status}</span></td>
+        <td>${new Date(s.started_at).toLocaleDateString('es-AR')}</td>
+      </tr>`).join('');
+  } catch(e) {}
+}
+
+// ── CAJAS MISTERIOSAS ─────────────────────────────────────────
+function startCajasPolling() {
+  fetchCajasState();
+  setInterval(fetchCajasState, 1500);
+}
+
+async function fetchCajasState() {
+  try {
+    const res = await fetch(`${API}/cajas/state`);
+    cajasState = await res.json();
+    if (currentPage === 'cajas') updateCajasUI();
+    const pending = (cajasState.pendingTransfers || []).filter(t => !t.approved).length;
+    document.getElementById('badge-cajas').textContent = pending;
+    document.getElementById('badge-cajas-inner').textContent = pending;
+  } catch(e) {}
+}
+
+function updateCajasUI() {
+  const s = cajasState;
+  const statusColors = { OPEN:'status-open', CLOSED:'status-closed', COUNTDOWN:'status-countdown', FINISHED:'status-finished' };
+  const dot = document.getElementById('cajas-status-dot');
+  dot.className = `status-indicator ${statusColors[s.status] || ''}`;
+  document.getElementById('cajas-status-text').textContent = s.status;
+  document.getElementById('cajas-players').textContent = (s.players||[]).length;
+  document.getElementById('cajas-max').textContent = s.config?.maxPlayers || 10;
+  document.getElementById('cajas-jackpot').textContent = (s.jackpot||0).toLocaleString('es-AR');
+
+  const collected = s.roundFund || 0;
+  const comm = collected * ((s.config?.commissionPercent || 20) / 100);
+  document.getElementById('cajas-collected').textContent = '$' + collected.toLocaleString('es-AR');
+  document.getElementById('cajas-commission').textContent = '$' + Math.floor(comm).toLocaleString('es-AR');
+  document.getElementById('cajas-confirmed').textContent = (s.players||[]).filter(p=>p.approved).length;
+  const pendingCount = (s.pendingTransfers||[]).filter(t=>!t.approved).length;
+  document.getElementById('cajas-pending-count').textContent = pendingCount;
+
+  if (s.countdownEnd && s.status === 'COUNTDOWN') {
+    const rem = Math.max(0, Math.ceil((s.countdownEnd - Date.now()) / 1000));
+    document.getElementById('cajas-timer').textContent = `00:0${rem}`;
+  } else {
+    document.getElementById('cajas-timer').textContent = '--:--';
+  }
+
+  // Boxes grid
+  const grid = document.getElementById('cajas-boxes');
+  grid.innerHTML = '';
+  for (let i = 1; i <= (s.config?.totalBoxes || 20); i++) {
+    const el = document.createElement('div');
+    el.className = 'box';
+    el.textContent = i;
+    if (s.boxes?.[i]) el.classList.add('taken');
+    else if (s.extraBoxes?.[i]) { el.classList.add('taken'); el.title = 'Extra'; }
+    const pend = (s.players||[]).find(p => p.selectedBox == i && !p.approved);
+    if (pend) { el.classList.add('pending'); el.title = `⏳ ${pend.name}`; }
+    if (s.winningBox == i) el.classList.add(s.winner ? 'winner' : 'empty-winner');
+    grid.appendChild(el);
+  }
+
+  // Players list
+  const pl = document.getElementById('cajas-players-list');
+  pl.innerHTML = (s.players||[]).length === 0
+    ? '<p style="color:var(--text-muted);font-size:.82rem;padding:12px">Sin jugadores...</p>'
+    : (s.players||[]).map(p => `
+        <div class="player-chip ${p.box?'ready':''}">
+          ${p.name} ${p.box?'✓':''} ${p.extraBox?'⭐':''}
+          ${!p.approved&&p.selectedBox?'<span style="color:var(--gold)"> ⏳</span>':''}
+        </div>`).join('');
+
+  // Pagos
+  const pagos = (s.pendingTransfers||[]).filter(t => !t.approved);
+  document.getElementById('pagos-list').innerHTML = pagos.length === 0
+    ? '<p style="color:var(--text-muted);font-size:.82rem;padding:12px">Sin pagos pendientes</p>'
+    : pagos.map(t => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid var(--border)">
+          <div>
+            <strong>${t.name}</strong> <span style="color:var(--text-dim);font-size:.78rem">${t.type === 'extra' ? '(Extra)' : ''}</span><br>
+            <span style="font-size:.75rem;color:var(--text-dim)">Alias: ${t.mpAlias || '—'} · Op: ${t.operationId || '—'} · Caja: ${t.boxNumber}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-family:'Space Mono',monospace;color:var(--gold)">$${(t.amount||0).toLocaleString('es-AR')}</span>
+            <button class="btn btn-green btn-sm" onclick="cajasApprove('${t.id}')">✓</button>
+            <button class="btn btn-red btn-sm" onclick="cajasReject('${t.id}')">✗</button>
+          </div>
+        </div>`).join('');
+}
+
+function togglePagos() {
+  const el = document.getElementById('pagos-panel');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function cajasAction(action) {
+  const labels = { 'force-start': 'Forzar inicio', 'reset': 'Resetear juego' };
+  if (action === 'reset' && !confirm('¿Resetear la ronda actual?')) return;
+  try {
+    const res = await fetch(`${API}/cajas/${action}`, { method:'POST', headers: authHeaders() });
+    const d = await res.json();
+    if (d.success) notify(labels[action] + ' ✓');
+    else notify(d.error, 'error');
+  } catch(e) { notify('Error', 'error'); }
+}
+
+async function cajasApprove(id) {
+  try {
+    const res = await fetch(`${API}/cajas/approve-transfer`, {
+      method:'POST', headers: authHeaders(),
+      body: JSON.stringify({ transferId: id })
+    });
+    const d = await res.json();
+    if (d.success) notify('Pago aprobado ✓');
+    else notify(d.error, 'error');
+  } catch(e) {}
+}
+
+async function cajasReject(id) {
+  if (!confirm('¿Rechazar este pago?')) return;
+  try {
+    await fetch(`${API}/cajas/reject-transfer`, {
+      method:'POST', headers: authHeaders(),
+      body: JSON.stringify({ transferId: id })
+    });
+    notify('Pago rechazado', 'warning');
+  } catch(e) {}
+}
+
+// ── CAJAS WINNERS ─────────────────────────────────────────────
+async function loadCajasWinners() {
+  try {
+    const res = await fetch(`${API}/admin/cajas/winners`, { headers: authHeaders() });
+    const d = await res.json();
+    document.getElementById('cajas-winners-table').innerHTML = (d.winners || []).map(w => `
+      <tr>
+        <td><strong>${w.name}</strong></td>
+        <td>${w.mp_alias || '—'}</td>
+        <td style="color:var(--gold);font-family:'Space Mono',monospace">$${parseFloat(w.prize).toLocaleString('es-AR')}</td>
+        <td>📦 ${w.winning_box}</td>
+        <td><span class="badge badge-${w.transferred?'green':'red'}">${w.transferred?'Sí':'Pendiente'}</span></td>
+        <td>${new Date(w.created_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+        <td>${!w.transferred ? `<button class="btn btn-green btn-sm" onclick="markTransferred('${w.round_id}')">Marcar transferido</button>` : '✓'}</td>
+      </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted)">Sin ganadores aún</td></tr>';
+  } catch(e) {}
+}
+
+async function markTransferred(roundId) {
+  try {
+    const res = await fetch(`${API}/admin/cajas/winners/${roundId}/transfer`, { method:'POST', headers: authHeaders() });
+    const d = await res.json();
+    if (d.success) { notify('Marcado como transferido ✓'); loadCajasWinners(); }
+  } catch(e) {}
+}
+
+// ── CHAT ──────────────────────────────────────────────────────
+function initChatStream() {
+  const es = new EventSource(`${API}/cajas/chat/admin-stream`);
+  es.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    chatSessions = data.sessions || [];
+    const unread = chatSessions.filter(s => s.waitingReply).length;
+    document.getElementById('badge-chat').textContent = unread;
+    if (currentPage === 'chat') renderChatSessions();
+  };
+}
+
+function renderChatSessions() {
+  const list = document.getElementById('chat-sessions-list');
+  if (!chatSessions.length) {
+    list.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:.82rem">Sin conversaciones</div>';
+    return;
+  }
+  list.innerHTML = chatSessions.map(s => `
+    <div class="chat-session-item ${currentChatSession === s.sessionId ? 'active' : ''}" onclick="selectChat('${s.sessionId}')">
+      <div class="chat-session-name">
+        ${s.waitingReply ? '<span class="chat-session-badge"></span>' : ''}${s.name}
+        ${!s.open ? ' 🔒' : ''}
+      </div>
+      <div class="chat-session-preview">${s.lastMsg ? 'Último mensaje recibido' : 'Sin mensajes'}</div>
+    </div>`).join('');
+}
+
+function selectChat(sessionId) {
+  currentChatSession = sessionId;
+  renderChatSessions();
+  const session = chatSessions.find(s => s.sessionId === sessionId);
+  if (!session) return;
+  const msgs = document.getElementById('chat-messages');
+  const footer = document.getElementById('chat-footer');
+  msgs.innerHTML = session.messages.map(m => `
+    <div class="chat-msg ${m.from}">
+      <div class="chat-msg-name">${m.from === 'admin' ? 'Admin' : session.name}</div>
+      ${m.text}
+    </div>`).join('') || '<div style="color:var(--text-muted);font-size:.82rem;text-align:center">Sin mensajes</div>';
+  msgs.scrollTop = msgs.scrollHeight;
+  footer.style.display = session.open ? 'flex' : 'none';
+}
+
+async function sendChatReply() {
+  if (!currentChatSession) return;
+  const input = document.getElementById('chat-reply-input');
+  const text = input.value.trim();
+  if (!text) return;
+  try {
+    const res = await fetch(`${API}/cajas/chat/reply`, {
+      method:'POST', headers: authHeaders(),
+      body: JSON.stringify({ sessionId: currentChatSession, text })
+    });
+    if (res.ok) { input.value = ''; }
+    else notify('Error al enviar', 'error');
+  } catch(e) {}
+}
+
+async function closeChatSession() {
+  if (!currentChatSession) return;
+  await fetch(`${API}/cajas/chat/close`, {
+    method:'POST', headers: authHeaders(),
+    body: JSON.stringify({ sessionId: currentChatSession })
+  });
+  notify('Conversación cerrada');
+}
+
+// ── VIEWERS ───────────────────────────────────────────────────
+function initViewerStream() {
+  const es = new EventSource(`${API}/cajas/viewers/admin-stream`);
+  es.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    document.getElementById('viewer-count').textContent = data.viewers || 0;
+  };
+}
+
+// ── CONFIG ────────────────────────────────────────────────────
+async function loadConfig() {
+  try {
+    const [cajasRes, globalRes] = await Promise.all([
+      fetch(`${API}/cajas/state`),
+      fetch(`${API}/admin/config`, { headers: authHeaders() })
+    ]);
+    const cajasData = await cajasRes.json();
+    const globalData = await globalRes.json();
+
+    // Populate cajas config
+    const c = cajasData.config || {};
+    document.getElementById('cfg-entry').value = c.entryPrice || 500;
+    document.getElementById('cfg-extra').value = c.extraPrice || 1000;
+    document.getElementById('cfg-min').value = c.minPlayers || 2;
+    document.getElementById('cfg-max').value = c.maxPlayers || 10;
+    document.getElementById('cfg-boxes').value = c.totalBoxes || 20;
+    document.getElementById('cfg-comm').value = c.commissionPercent || 20;
+    document.getElementById('cfg-time').value = c.countdownTime || 3;
+    document.getElementById('cfg-alias').value = c.alias || '';
+    document.getElementById('cfg-msg').value = c.closedMessage || '';
+
+    // Populate global config
+    const cfg = globalData.config || {};
+    const editableKeys = ['commission_percent','min_bet','max_bet','casino_name'];
+    const labels = { commission_percent:'Comisión %', min_bet:'Apuesta Mínima', max_bet:'Apuesta Máxima', casino_name:'Nombre Casino' };
+    document.getElementById('config-fields').innerHTML = editableKeys.map(k => `
+      <div>
+        <label class="f-label">${labels[k] || k}</label>
+        <input class="f-input" id="gcfg-${k}" value="${cfg[k] || ''}">
+      </div>`).join('');
+  } catch(e) {}
+}
+
+async function saveGlobalConfig() {
+  const keys = ['commission_percent','min_bet','max_bet','casino_name'];
+  try {
+    await Promise.all(keys.map(k => {
+      const el = document.getElementById(`gcfg-${k}`);
+      if (!el) return;
+      return fetch(`${API}/admin/config`, {
+        method:'POST', headers: authHeaders(),
+        body: JSON.stringify({ key: k, value: el.value })
+      });
+    }));
+    notify('Configuración guardada ✓');
+  } catch(e) { notify('Error al guardar', 'error'); }
+}
+
+async function saveCajasConfig() {
+  const config = {
+    entryPrice: parseInt(document.getElementById('cfg-entry').value),
+    extraPrice: parseInt(document.getElementById('cfg-extra').value),
+    minPlayers: parseInt(document.getElementById('cfg-min').value),
+    maxPlayers: parseInt(document.getElementById('cfg-max').value),
+    totalBoxes: parseInt(document.getElementById('cfg-boxes').value),
+    commissionPercent: parseInt(document.getElementById('cfg-comm').value),
+    countdownTime: parseInt(document.getElementById('cfg-time').value),
+    alias: document.getElementById('cfg-alias').value,
+    closedMessage: document.getElementById('cfg-msg').value
+  };
+  try {
+    const res = await fetch(`${API}/cajas/config`, {
+      method:'POST', headers: authHeaders(),
+      body: JSON.stringify(config)
+    });
+    const d = await res.json();
+    if (d.config) notify('Config Caja Misteriosa guardada ✓');
+    else notify(d.error || 'Error', 'error');
+  } catch(e) { notify('Error de conexión', 'error'); }
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+checkAdminToken();
+</script>
+</body>
+</html>
