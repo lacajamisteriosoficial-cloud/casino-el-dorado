@@ -21,7 +21,7 @@ router.get('/stats', async (req, res) => {
 
         // Revenue por juego
         const byGame = await query(`
-            SELECT game, COALESCE(SUM(amount),0) as revenue, COUNT(*) as sessions
+            SELECT game, COALESCE(SUM(commission),0) as revenue, COUNT(*) as sessions
             FROM game_sessions
             WHERE status = 'finished' AND game IS NOT NULL
             GROUP BY game
