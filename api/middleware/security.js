@@ -3,16 +3,7 @@ const rateLimit = require('express-rate-limit');
 
 // ── Helmet (headers HTTP seguros) ─────────────────────────────
 const helmetConfig = helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://sdk.mercadopago.com", "https://fonts.googleapis.com"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", "https://api.mercadopago.com"],
-        },
-    },
+    contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
 });
 
@@ -20,7 +11,7 @@ const helmetConfig = helmet({
 
 // Límite general de API
 const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
+    windowMs: 15 * 60 * 1000,
     max: 200,
     standardHeaders: true,
     legacyHeaders: false,
@@ -38,7 +29,7 @@ const authLimiter = rateLimit({
 
 // Límite para acciones de juego
 const gameLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minuto
+    windowMs: 1 * 60 * 1000,
     max: 60,
     standardHeaders: true,
     legacyHeaders: false,
