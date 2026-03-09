@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Poker Texas Hold'em — Casino El Dorado</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+:root{--gold:#f0b429;--dark:#0a0a0f;--card:#1a1a2e;--green:#0d4f2e;--felt:#0a3d20;--red:#e53e3e;--blue:#3182ce}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:var(--dark);color:#fff;min-height:100vh}
+.header{background:linear-gradient(135deg,#1a1a2e,#16213e);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--gold)}
+.logo{font-size:1.4rem;font-weight:700;color:var(--gold)}
+.balance{color:var(--gold);font-size:1.1rem}
+#app{max-width:1000px;margin:0 auto;padding:1.5rem}
+
+/* LOBBY */
+#lobby-screen h2{text-align:center;color:var(--gold);font-size:2rem;margin-bottom:.5rem}
+#lobby-screen p{text-align:center;color:#aaa;margin-bottom:2rem}
+.level-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:2rem}
+.level-card{background:linear-gradient(135deg,#1a1a2e,#0d1117);border:2px solid #333;border-radius:16px;padding:1.5rem;text-align:center;cursor:pointer;transition:all .3s}
+.level-card:hover,.level-card.active{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 8px 30px rgba(240,180,41,.25)}
+.level-card h3{color:var(--gold);font-size:1.2rem;margin-bottom:.8rem}
+.level-card .entry{font-size:2rem;font-weight:700;color:#fff;margin:.5rem 0}
+.level-card .details{font-size:.85rem;color:#aaa;line-height:1.8}
+.tables-info{margin-top:1rem;font-size:.85rem;color:#888}
+.btn-join{background:linear-gradient(135deg,var(--gold),#d69e2e);color:#000;border:none;padding:.7rem 2rem;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem;margin-top:1rem;width:100%;transition:all .3s}
+.btn-join:hover{transform:scale(1.05)}
+.btn-join:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* WAITING */
+#waiting-screen{text-align:center}
+#waiting-screen h2{color:var(--gold);font-size:1.8rem;margin-bottom:1rem}
+.waiting-info{background:#1a1a2e;border-radius:12px;padding:2rem;margin:1rem 0;border:1px solid #333}
+.players-waiting{display:flex;flex-wrap:wrap;justify-content:center;gap:1rem;margin:1.5rem 0}
+.player-chip{background:#0d1117;border:2px solid #444;border-radius:50px;padding:.5rem 1.2rem;font-size:.9rem}
+.player-chip.me{border-color:var(--gold);color:var(--gold)}
+.countdown-bar{width:100%;height:8px;background:#333;border-radius:4px;margin:1rem 0;overflow:hidden}
+.countdown-fill{height:100%;background:linear-gradient(90deg,var(--gold),#d69e2e);transition:width 1s linear}
+
+/* TABLE */
+#table-screen{position:relative}
+.poker-table{background:radial-gradient(ellipse at center,var(--felt) 0%,var(--green) 60%,#0a2d18 100%);border:12px solid #5d3a1a;border-radius:50%;width:100%;max-width:700px;height:380px;margin:0 auto 2rem;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.8),inset 0 0 60px rgba(0,0,0,.3)}
+.table-pot{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.table-pot .pot-label{font-size:.75rem;color:rgba(255,255,255,.6);text-transform:uppercase}
+.table-pot .pot-amount{font-size:1.8rem;font-weight:700;color:var(--gold)}
+.community-cards{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);display:flex;gap:8px}
+.player-seat{position:absolute;text-align:center;width:100px}
+.seat-0{bottom:5%;left:50%;transform:translateX(-50%)}
+.seat-1{bottom:15%;right:2%}
+.seat-2{top:15%;right:2%}
+.seat-3{top:5%;left:50%;transform:translateX(-50%)}
+.seat-4{top:15%;left:2%}
+.seat-5{bottom:15%;left:2%}
+.player-avatar{width:44px;height:44px;border-radius:50%;background:#1a1a2e;border:3px solid #444;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin:0 auto;transition:all .3s}
+.player-avatar.active{border-color:var(--gold);box-shadow:0 0 15px var(--gold);animation:pulse 1.5s infinite}
+.player-avatar.folded{opacity:.4;border-color:#333}
+.player-name{font-size:.75rem;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+.player-name.me-label{color:var(--gold)}
+.player-cards-mini{display:flex;justify-content:center;gap:3px;margin-top:4px}
+
+/* Cards */
+.card{background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;border:1px solid #ddd;box-shadow:0 2px 8px rgba(0,0,0,.5);color:#333;font-size:.9rem;user-select:none}
+.card.red{color:var(--red)}
+.card.big{width:52px;height:76px;font-size:1.2rem}
+.card.mini{width:22px;height:30px;font-size:.65rem}
+.card.community-card{width:48px;height:68px;font-size:1.1rem}
+.card.back{background:linear-gradient(135deg,#1a1a6e,#2d2d8e);color:#fff;font-size:1.2rem}
+.card.face-down{background:linear-gradient(135deg,#1a1a6e,#2d2d8e)}
+
+/* My hand */
+.my-hand{display:flex;justify-content:center;gap:12px;margin:1rem 0}
+.hand-card{position:relative}
+
+/* Actions */
+.action-panel{background:#1a1a2e;border-radius:12px;padding:1.5rem;border:1px solid #333;margin-top:1rem}
+.action-panel h3{color:var(--gold);margin-bottom:1rem;font-size:1rem;text-align:center}
+.action-info{text-align:center;margin-bottom:1rem;font-size:.9rem;color:#aaa}
+.action-info span{color:#fff;font-weight:600}
+.action-btns{display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center}
+.btn-action{padding:.7rem 1.5rem;border-radius:8px;font-weight:700;cursor:pointer;border:none;font-size:.95rem;transition:all .2s;min-width:100px}
+.btn-fold{background:#c53030;color:#fff}.btn-fold:hover{background:#e53e3e}
+.btn-check{background:#2d3748;color:#fff;border:2px solid #4a5568}.btn-check:hover{background:#4a5568}
+.btn-call{background:#2c7a7b;color:#fff}.btn-call:hover{background:#38b2ac}
+.btn-raise{background:linear-gradient(135deg,var(--gold),#d69e2e);color:#000}.btn-raise:hover{transform:scale(1.05)}
+.raise-input{display:flex;gap:.5rem;margin-top:.75rem;justify-content:center;align-items:center}
+.raise-input input{background:#0d1117;border:2px solid #333;color:#fff;border-radius:8px;padding:.5rem .75rem;font-size:.9rem;width:120px;text-align:center}
+.raise-input input:focus{outline:none;border-color:var(--gold)}
+
+/* Timer */
+.turn-timer{height:4px;background:#333;border-radius:2px;overflow:hidden;margin-bottom:1rem}
+.turn-timer-fill{height:100%;background:var(--gold);transition:width 1s linear}
+.turn-label{font-size:.8rem;color:#888;text-align:center;margin-bottom:.5rem}
+
+/* Game log */
+.game-log{background:#0d1117;border-radius:8px;padding:1rem;margin-top:1rem;max-height:150px;overflow-y:auto;border:1px solid #1a1a2e}
+.log-entry{font-size:.8rem;color:#999;padding:.2rem 0;border-bottom:1px solid #1a1a2e}
+.log-entry:last-child{border:none;color:#ccc}
+.log-gold{color:var(--gold)}
+.log-red{color:var(--red)}
+.log-blue{color:var(--blue)}
+.phase-badge{display:inline-block;background:#333;padding:.2rem .6rem;border-radius:4px;font-size:.75rem;text-transform:uppercase;letter-spacing:1px;margin-left:.5rem;color:var(--gold);border:1px solid var(--gold)}
+
+/* Result */
+#result-screen{text-align:center;padding:2rem}
+.result-icon{font-size:4rem;margin-bottom:1rem}
+.result-title{font-size:2.5rem;font-weight:700;color:var(--gold);margin-bottom.5rem}
+.result-amount{font-size:3rem;font-weight:700;color:#48bb78;margin:1rem 0}
+.result-hands{display:flex;flex-wrap:wrap;gap:1rem;justify-content:center;margin:2rem 0}
+.result-player{background:#1a1a2e;border-radius:12px;padding:1rem 1.5rem;min-width:180px;border:2px solid #333}
+.result-player.winner{border-color:var(--gold);background:linear-gradient(135deg,#1a1a2e,#2d2200)}
+.result-player .hand-name{font-size:.8rem;color:#888;margin-top:.5rem}
+.hand-cards-show{display:flex;justify-content:center;gap:6px;margin:.5rem 0}
+.btn-lobby{background:linear-gradient(135deg,var(--gold),#d69e2e);color:#000;border:none;padding:1rem 2.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:1.1rem;margin-top:1.5rem}
+.status-badge{display:inline-block;padding:.2rem .6rem;border-radius:4px;font-size:.75rem;margin-top:.3rem}
+.status-folded{background:#c53030;color:#fff}
+.status-active{background:#276749;color:#fff}
+
+/* General */
+.screen{display:none}.screen.active{display:block}
+@keyframes pulse{0%,100%{box-shadow:0 0 10px var(--gold)}50%{box-shadow:0 0 25px var(--gold),0 0 40px var(--gold)}}
+.toast{position:fixed;top:1rem;right:1rem;background:#1a1a2e;border:1px solid var(--gold);padding:1rem 1.5rem;border-radius:8px;color:var(--gold);font-weight:600;z-index:999;opacity:0;transition:opacity .3s;max-width:300px}
+.toast.show{opacity:1}
+.toast.error{border-color:var(--red);color:var(--red)}
+@media(max-width:640px){
+  .level-cards{grid-template-columns:1fr}
+  .poker-table{height:280px}
+  .action-btns{gap:.5rem}
+  .btn-action{min-width:80px;padding:.6rem 1rem;font-size:.85rem}
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">🃏 Casino El Dorado</div>
+  <div class="balance">💰 $<span id="balance-display">0</span></div>
+</div>
+<div id="app">
+  <!-- LOBBY -->
+  <div id="lobby-screen" class="screen active">
+    <h2>♠ Poker Texas Hold'em</h2>
+    <p>Probá tu suerte y habilidad contra otros jugadores en vivo</p>
+    <div class="level-cards">
+      <div class="level-card" data-level="500">
+        <h3>🟢 Mesa Básica</h3>
+        <div class="entry">$500</div>
+        <div class="details">Al pozo: $400<br>Comisión: $100<br>2 a 6 jugadores</div>
+        <div class="tables-info" id="tables-500">Cargando...</div>
+        <button class="btn-join" onclick="joinTable(500)">Entrar</button>
+      </div>
+      <div class="level-card" data-level="1000">
+        <h3>🟡 Mesa Media</h3>
+        <div class="entry">$1.000</div>
+        <div class="details">Al pozo: $800<br>Comisión: $200<br>2 a 6 jugadores</div>
+        <div class="tables-info" id="tables-1000">Cargando...</div>
+        <button class="btn-join" onclick="joinTable(1000)">Entrar</button>
+      </div>
+      <div class="level-card" data-level="5000">
+        <h3>🔴 Mesa Alta</h3>
+        <div class="entry">$5.000</div>
+        <div class="details">Al pozo: $4.000<br>Comisión: $1.000<br>2 a 6 jugadores</div>
+        <div class="tables-info" id="tables-5000">Cargando...</div>
+        <button class="btn-join" onclick="joinTable(5000)">Entrar</button>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:1rem">
+      <a href="/lobby.html" style="color:#888;text-decoration:none">← Volver al lobby</a>
+    </div>
+  </div>
+
+  <!-- WAITING -->
+  <div id="waiting-screen" class="screen">
+    <h2>♠ Esperando jugadores...</h2>
+    <div class="waiting-info">
+      <div style="font-size:1.1rem;color:#aaa;margin-bottom:1rem">Mesa <span id="w-level" style="color:var(--gold)"></span> — Entrada: $<span id="w-entry"></span></div>
+      <div class="players-waiting" id="w-players"></div>
+      <p style="color:#888;font-size:.9rem;margin-bottom:.5rem">Mínimo 2 jugadores para comenzar</p>
+      <div class="countdown-bar"><div class="countdown-fill" id="countdown-fill" style="width:100%"></div></div>
+      <div id="countdown-text" style="color:var(--gold);font-size:1.2rem;font-weight:700"></div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div id="table-screen" class="screen">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h3 style="color:var(--gold)">♠ Mesa Poker <span class="phase-badge" id="phase-badge">preflop</span></h3>
+      <span style="color:#888;font-size:.85rem">Pozo: $<strong id="pot-display" style="color:var(--gold)"></strong></span>
+    </div>
+
+    <div class="poker-table" id="poker-table">
+      <div class="community-cards" id="community-cards"></div>
+      <div class="table-pot">
+        <div class="pot-label">Pozo</div>
+        <div class="pot-amount">$<span id="pot-amount">0</span></div>
+      </div>
+      <div id="player-seats"></div>
+    </div>
+
+    <div style="text-align:center;font-size:.9rem;color:#888;margin-bottom:.5rem">Tus cartas:</div>
+    <div class="my-hand" id="my-hand"></div>
+
+    <div id="action-panel" class="action-panel" style="display:none">
+      <div class="turn-timer"><div class="turn-timer-fill" id="turn-timer-fill" style="width:100%"></div></div>
+      <div class="turn-label">Tu turno — <span id="timer-label">30s</span></div>
+      <h3>¿Qué hacés?</h3>
+      <div class="action-info">Apuesta actual: $<span id="current-bet">0</span> | Tu apuesta: $<span id="my-bet">0</span></div>
+      <div class="action-btns">
+        <button class="btn-action btn-fold" onclick="sendAction('fold')">Fold</button>
+        <button class="btn-action btn-check" id="btn-check" onclick="sendAction('check')">Check</button>
+        <button class="btn-action btn-call" id="btn-call" onclick="sendAction('call')">Call</button>
+        <button class="btn-action btn-raise" onclick="toggleRaise()">Raise ▲</button>
+      </div>
+      <div class="raise-input" id="raise-input" style="display:none">
+        <input type="number" id="raise-amount" placeholder="Monto" min="0">
+        <button class="btn-action btn-raise" onclick="sendRaise()" style="min-width:80px">Subir</button>
+      </div>
+    </div>
+
+    <div id="waiting-turn" style="text-align:center;padding:1rem;color:#888;font-size:.9rem">
+      Esperando tu turno...
+    </div>
+
+    <div class="game-log" id="game-log"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result-screen" class="screen">
+    <div class="result-icon" id="result-icon">🎉</div>
+    <div class="result-title" id="result-title">Resultado</div>
+    <div class="result-amount" id="result-amount"></div>
+    <div class="result-hands" id="result-hands"></div>
+    <div id="community-final" style="display:flex;justify-content:center;gap:8px;margin-bottom:1rem"></div>
+    <button class="btn-lobby" onclick="goLobby()">Jugar de nuevo</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const token = localStorage.getItem('token');
+const username = localStorage.getItem('username');
+if (!token) { window.location.href = '/'; }
+
+let socket, myTableId, myUserId, myBalance=0, currentPhase='', minBet=0, myBetAmount=0;
+let timerInterval;
+
+// Get user info
+async function loadBalance() {
+  try {
+    const r = await fetch('/api/auth/me', { headers:{'Authorization':'Bearer '+token} });
+    if (r.status===401) { localStorage.clear(); window.location.href='/'; return; }
+    const d = await r.json();
+    myBalance = d.balance;
+    myUserId = d.id;
+    document.getElementById('balance-display').textContent = Number(d.balance).toLocaleString('es-AR');
+  } catch(e){}
+}
+
+function initSocket() {
+  socket = io({ auth:{ token } });
+
+  socket.on('connect', () => {
+    socket.emit('poker:getTables');
+  });
+
+  socket.on('poker:tables', (data) => {
+    for (const level of [500,1000,5000]) {
+      const tables = data[level]||[];
+      const el = document.getElementById('tables-'+level);
+      if (!el) continue;
+      const waiting = tables.filter(t=>t.status==='waiting');
+      const playing = tables.filter(t=>t.status==='playing');
+      el.innerHTML = waiting.length
+        ? `<span style="color:#68d391">▶ Mesa abierta (${waiting[0].players}/${waiting[0].max})</span>`
+        : `<span style="color:#888">Sin mesas — se crea automático</span>`;
+    }
+  });
+
+  socket.on('poker:error', (msg) => toast(msg, true));
+
+  socket.on('poker:joined', ({ tableId, level, entry }) => {
+    myTableId = tableId;
+    showScreen('waiting-screen');
+    document.getElementById('w-level').textContent = '$'+Number(level).toLocaleString('es-AR');
+    document.getElementById('w-entry').textContent = Number(entry).toLocaleString('es-AR');
+    addLog(`Entraste a la mesa. Entrada: $${Number(entry).toLocaleString('es-AR')}`, 'gold');
+  });
+
+  socket.on('poker:playerJoined', ({ players, needed }) => {
+    const container = document.getElementById('w-players');
+    container.innerHTML = players.map(p=>`<div class="player-chip ${p.username===username?'me':''}">${p.username===username?'⭐ ':''} ${p.username}</div>`).join('');
+    if (needed > 0) document.getElementById('countdown-text').textContent = `Faltan ${needed} jugador${needed!==1?'es':''}`;
+    else document.getElementById('countdown-text').textContent = '¡Comenzando en 15 segundos!';
+  });
+
+  socket.on('poker:countdown', ({ seconds }) => {
+    startCountdown(seconds);
+  });
+
+  socket.on('poker:gameStart', ({ players, pot, commission, community, phase, currentTurn, currentPlayer }) => {
+    showScreen('table-screen');
+    currentPhase = phase;
+    document.getElementById('phase-badge').textContent = phaseName(phase);
+    document.getElementById('pot-amount').textContent = Number(pot).toLocaleString('es-AR');
+    document.getElementById('pot-display').textContent = Number(pot).toLocaleString('es-AR');
+    renderSeats(players, currentTurn);
+    renderCommunity(community);
+    addLog(`🃏 ¡El juego comenzó! ${players.length} jugadores. Pozo: $${Number(pot).toLocaleString('es-AR')}`, 'gold');
+    updateTurnUI(currentTurn, currentPlayer, players);
+  });
+
+  socket.on('poker:yourHand', ({ hand }) => {
+    renderMyHand(hand);
+  });
+
+  socket.on('poker:action', ({ playerId, username: uname, action, amount }) => {
+    const labels = { fold:'Fold 🗑️', check:'Check ✓', call:'Call 📞', raise:`Raise ↑ $${Number(amount).toLocaleString('es-AR')}` };
+    const cls = action==='fold'?'red': action==='raise'?'gold':'blue';
+    addLog(`${uname}: ${labels[action]||action}`, cls);
+    if (action==='fold') markFolded(playerId);
+  });
+
+  socket.on('poker:turnChange', ({ currentTurn, currentPlayer, phase, community, minBet: mb }) => {
+    currentPhase = phase;
+    minBet = mb||0;
+    document.getElementById('phase-badge').textContent = phaseName(phase);
+    if (community) renderCommunity(community);
+    updateSeatsActive(currentTurn);
+    updateTurnUI(currentTurn, currentPlayer, null);
+    addLog(`Turno: ${currentPlayer} | Fase: ${phaseName(phase)}`, 'blue');
+  });
+
+  socket.on('poker:timerStart', ({ seconds }) => {
+    startTurnTimer(seconds);
+  });
+
+  socket.on('poker:gameEnd', ({ result, winners, prize, allPlayers, pot, community }) => {
+    clearTurnTimer();
+    if (community) renderCommunity(community);
+    showResult(result, winners, prize, allPlayers);
+    loadBalance();
+  });
+}
+
+// ── UI ────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function cardHTML(card, size='big') {
+  if (!card) return `<div class="card back ${size}">🂠</div>`;
+  const isRed = card.s==='♥'||card.s==='♦';
+  return `<div class="card ${size} ${isRed?'red':''}">${card.r}${card.s}</div>`;
+}
+
+function renderMyHand(hand) {
+  document.getElementById('my-hand').innerHTML = hand.map(c=>cardHTML(c,'big')).join('');
+}
+
+function renderCommunity(cards) {
+  const el = document.getElementById('community-cards');
+  el.innerHTML = cards.map(c=>cardHTML(c,'community-card')).join('');
+  // Rellenar slots vacíos
+  const empty = 5 - cards.length;
+  for (let i=0; i<empty; i++) el.innerHTML += `<div class="card community-card face-down"></div>`;
+}
+
+const SEAT_CLASSES = ['seat-0','seat-1','seat-2','seat-3','seat-4','seat-5'];
+
+function renderSeats(players, currentTurn) {
+  const container = document.getElementById('player-seats');
+  container.innerHTML = '';
+  players.forEach((p,i) => {
+    const isMe = p.username === username;
+    const isActive = i === currentTurn;
+    const div = document.createElement('div');
+    div.className = `player-seat ${SEAT_CLASSES[i]}`;
+    div.id = `seat-${p.id}`;
+    div.innerHTML = `
+      <div class="player-avatar ${isActive?'active':''} ${p.status==='folded'?'folded':''}">${p.username[0].toUpperCase()}</div>
+      <div class="player-name ${isMe?'me-label':''}">${isMe?'⭐ '+p.username:p.username}</div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function updateSeatsActive(currentTurn) {
+  document.querySelectorAll('.player-avatar').forEach((el,i) => {
+    el.classList.toggle('active', i === currentTurn);
+  });
+}
+
+function markFolded(playerId) {
+  const seat = document.getElementById('seat-'+playerId);
+  if (seat) {
+    const avatar = seat.querySelector('.player-avatar');
+    if (avatar) { avatar.classList.remove('active'); avatar.classList.add('folded'); }
+  }
+}
+
+function updateTurnUI(currentTurn, currentPlayer, players) {
+  const currentPlayers = players || Array.from(document.querySelectorAll('.player-name')).map((el,i)=>({username:el.textContent.replace('⭐ ','')}));
+  const isMyTurn = currentPlayer === username;
+  document.getElementById('action-panel').style.display = isMyTurn ? 'block' : 'none';
+  document.getElementById('waiting-turn').style.display = isMyTurn ? 'none' : 'block';
+  document.getElementById('current-bet').textContent = Number(minBet).toLocaleString('es-AR');
+  document.getElementById('my-bet').textContent = Number(myBetAmount).toLocaleString('es-AR');
+  if (isMyTurn) {
+    const checkBtn = document.getElementById('btn-check');
+    const callBtn = document.getElementById('btn-call');
+    if (minBet > myBetAmount) {
+      checkBtn.disabled = true; checkBtn.style.opacity = '.4';
+      callBtn.disabled = false; callBtn.textContent = `Call $${Number(minBet).toLocaleString('es-AR')}`;
+    } else {
+      checkBtn.disabled = false; checkBtn.style.opacity = '1';
+      callBtn.disabled = true; callBtn.style.opacity = '.4';
+    }
+  }
+}
+
+function phaseName(p) {
+  const names = { preflop:'Pre-flop', flop:'Flop', turn:'Turn', river:'River', showdown:'Showdown' };
+  return names[p] || p;
+}
+
+function addLog(msg, type='') {
+  const log = document.getElementById('game-log');
+  const d = document.createElement('div');
+  d.className = `log-entry ${type?'log-'+type:''}`;
+  d.textContent = msg;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────
+function joinTable(level) {
+  if (!socket || !socket.connected) return toast('No conectado al servidor', true);
+  socket.emit('poker:join', { level });
+  document.querySelectorAll('.btn-join').forEach(b=>b.disabled=true);
+}
+
+function sendAction(action) {
+  if (!socket) return;
+  socket.emit('poker:action', { action });
+  document.getElementById('action-panel').style.display = 'none';
+  document.getElementById('waiting-turn').style.display = 'block';
+  clearTurnTimer();
+}
+
+function toggleRaise() {
+  const panel = document.getElementById('raise-input');
+  panel.style.display = panel.style.display==='none' ? 'flex' : 'none';
+  if (panel.style.display!=='none') document.getElementById('raise-amount').focus();
+}
+
+function sendRaise() {
+  const amount = parseInt(document.getElementById('raise-amount').value);
+  if (!amount || amount <= minBet) return toast('El raise debe ser mayor a la apuesta actual ($'+minBet+')', true);
+  socket.emit('poker:action', { action:'raise', amount });
+  document.getElementById('action-panel').style.display = 'none';
+  clearTurnTimer();
+}
+
+// ── TIMERS ────────────────────────────────────────────────────
+function startCountdown(seconds) {
+  let remaining = seconds;
+  const fill = document.getElementById('countdown-fill');
+  const text = document.getElementById('countdown-text');
+  clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{
+    remaining--;
+    fill.style.width = (remaining/seconds*100)+'%';
+    if (remaining <= 0) clearInterval(timerInterval);
+    else text.textContent = `¡Comenzando en ${remaining}s!`;
+  },1000);
+}
+
+let turnTimerInterval;
+function startTurnTimer(seconds) {
+  clearTurnTimer();
+  let remaining = seconds;
+  const fill = document.getElementById('turn-timer-fill');
+  const label = document.getElementById('timer-label');
+  fill.style.width = '100%';
+  turnTimerInterval = setInterval(()=>{
+    remaining--;
+    fill.style.width = (remaining/seconds*100)+'%';
+    if (label) label.textContent = remaining+'s';
+    if (remaining <= 0) clearTurnTimer();
+  },1000);
+}
+
+function clearTurnTimer() {
+  clearInterval(turnTimerInterval);
+}
+
+// ── RESULT ────────────────────────────────────────────────────
+function showResult(type, winners, prize, allPlayers) {
+  const isWinner = winners.some(w=>w.username===username);
+  document.getElementById('result-icon').textContent = isWinner ? '🎉' : '😔';
+  document.getElementById('result-title').textContent = isWinner ? '¡Ganaste!' : (type==='draw'?'Empate':'Perdiste';
+  document.getElementById('result-amount').textContent = isWinner ? `+$${Number(prize).toLocaleString('es-AR')}` : '';
+  document.getElementById('result-amount').style.color = isWinner ? '#48bb78' : '#e53e3e';
+
+  const handsEl = document.getElementById('result-hands');
+  handsEl.innerHTML = (allPlayers||[]).map(p => {
+    const isW = winners.some(w=>w.id===p.id);
+    const handInfo = winners.find(w=>w.id===p.id);
+    return `<div class="result-player ${isW?'winner':''}">
+      <div style="font-weight:700;${p.username===username?'color:var(--gold)':''}">
+        ${isW?'🏆 ':''}${p.username}
+      </div>
+      ${p.hand ? `<div class="hand-cards-show">${p.hand.map(c=>cardHTML(c,'mini')).join('')}</div>` : ''}
+      <div class="hand-name">${handInfo?.handName||p.handName||'Foldeó'}</div>
+      <div class="status-badge ${isW?'status-active':p.status==='folded'?'status-folded':'status-active'}">${isW?'Ganador':p.status==='folded'?'Fold':'—'}</div>
+    </div>`;
+  }).join('');
+
+  setTimeout(()=>showScreen('result-screen'), 500);
+}
+
+function goLobby() {
+  showScreen('lobby-screen');
+  if (socket) socket.emit('poker:getTables');
+  loadBalance();
+  document.querySelectorAll('.btn-join').forEach(b=>b.disabled=false);
+  document.getElementById('game-log').innerHTML = '';
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+function toast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError?' error':'');
+  setTimeout(()=>t.className='toast',4000);
+}
+
+loadBalance().then(initSocket);
+setInterval(()=>{ if(socket&&socket.connected) socket.emit('poker:getTables'); }, 10000);
+</script>
+</body>
+</html>
