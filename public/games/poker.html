@@ -1,542 +1,638 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Poker Texas Hold'em — Casino El Dorado</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Casino El Dorado — Poker Texas Hold'em</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="/socket.io/socket.io.js"></script>
 <style>
-:root{--gold:#f0b429;--dark:#0a0a0f;--card:#1a1a2e;--green:#0d4f2e;--felt:#0a3d20;--red:#e53e3e;--blue:#3182ce}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',sans-serif;background:var(--dark);color:#fff;min-height:100vh}
-.header{background:linear-gradient(135deg,#1a1a2e,#16213e);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--gold)}
-.logo{font-size:1.4rem;font-weight:700;color:var(--gold)}
-.balance{color:var(--gold);font-size:1.1rem}
-#app{max-width:1000px;margin:0 auto;padding:1.5rem}
+:root{
+  --gold:#C9A84C;--gold-light:#F0D080;--gold-dark:#8B6914;
+  --dark:#060608;--dark2:#0E0E14;--dark3:#16161F;
+  --border:rgba(201,168,76,0.18);--text:#E8DCC8;--text-dim:#6A6050;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min-height:100vh;}
+
+/* NAV */
+.topnav{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:60px;border-bottom:1px solid var(--border);background:rgba(6,6,8,.97);position:sticky;top:0;z-index:100;}
+.nav-logo{font-family:'Cinzel Decorative',serif;font-size:1rem;background:linear-gradient(180deg,var(--gold-light),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.back-btn{padding:7px 16px;font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:2px;text-transform:uppercase;background:transparent;border:1px solid var(--border);color:var(--text-dim);cursor:pointer;transition:all .2s;text-decoration:none;display:inline-block;}
+.back-btn:hover{border-color:var(--gold);color:var(--gold);}
+.balance-chip{padding:6px 14px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);font-family:'Cinzel',serif;font-size:.95rem;color:var(--gold);}
+
+.main{max-width:900px;margin:0 auto;padding:24px 16px;}
+.game-title{font-family:'Cinzel Decorative',serif;font-size:1.8rem;background:linear-gradient(180deg,var(--gold-light),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;margin-bottom:4px;}
+.game-sub{text-align:center;font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:5px;color:var(--text-dim);text-transform:uppercase;margin-bottom:28px;}
 
 /* LOBBY */
-#lobby-screen h2{text-align:center;color:var(--gold);font-size:2rem;margin-bottom:.5rem}
-#lobby-screen p{text-align:center;color:#aaa;margin-bottom:2rem}
-.level-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:2rem}
-.level-card{background:linear-gradient(135deg,#1a1a2e,#0d1117);border:2px solid #333;border-radius:16px;padding:1.5rem;text-align:center;cursor:pointer;transition:all .3s}
-.level-card:hover,.level-card.active{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 8px 30px rgba(240,180,41,.25)}
-.level-card h3{color:var(--gold);font-size:1.2rem;margin-bottom:.8rem}
-.level-card .entry{font-size:2rem;font-weight:700;color:#fff;margin:.5rem 0}
-.level-card .details{font-size:.85rem;color:#aaa;line-height:1.8}
-.tables-info{margin-top:1rem;font-size:.85rem;color:#888}
-.btn-join{background:linear-gradient(135deg,var(--gold),#d69e2e);color:#000;border:none;padding:.7rem 2rem;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem;margin-top:1rem;width:100%;transition:all .3s}
-.btn-join:hover{transform:scale(1.05)}
-.btn-join:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.levels-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+@media(max-width:500px){.levels-grid{grid-template-columns:1fr;}}
+.level-card{background:linear-gradient(160deg,var(--dark2),var(--dark3));border:1px solid var(--border);padding:24px 16px;text-align:center;cursor:pointer;transition:all .25s;position:relative;}
+.level-card:hover{border-color:var(--gold);transform:translateY(-3px);box-shadow:0 12px 28px rgba(0,0,0,.5);}
+.level-card.selected{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 12px 28px rgba(201,168,76,.2);}
+.level-name{font-family:'Cinzel Decorative',serif;font-size:1.1rem;background:linear-gradient(180deg,var(--gold-light),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;}
+.level-entry{font-family:'Cinzel',serif;font-size:1.6rem;font-weight:700;color:var(--gold);margin-bottom:4px;}
+.level-entry-label{font-size:.65rem;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:14px;}
+.level-info{font-size:.75rem;color:var(--text-dim);line-height:1.7;}
+.level-info strong{color:var(--text);}
+.level-badge{position:absolute;top:10px;right:10px;padding:3px 8px;font-size:.58rem;letter-spacing:1px;font-family:'Cinzel',serif;text-transform:uppercase;}
+.badge-hot{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;}
+.badge-vip{background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4);color:var(--gold);}
+.tables-info{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);padding:14px 18px;margin-bottom:16px;font-size:.8rem;color:var(--text-dim);}
+.tables-info strong{color:var(--gold);}
+.btn-join{width:100%;padding:15px;background:linear-gradient(135deg,var(--gold-dark),var(--gold));border:none;color:#0A0805;font-family:'Cinzel',serif;font-size:.9rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all .3s;}
+.btn-join:hover:not(:disabled){background:linear-gradient(135deg,var(--gold),var(--gold-light));transform:translateY(-1px);box-shadow:0 8px 24px rgba(201,168,76,.3);}
+.btn-join:disabled{opacity:.4;cursor:not-allowed;transform:none;}
 
 /* WAITING */
-#waiting-screen{text-align:center}
-#waiting-screen h2{color:var(--gold);font-size:1.8rem;margin-bottom:1rem}
-.waiting-info{background:#1a1a2e;border-radius:12px;padding:2rem;margin:1rem 0;border:1px solid #333}
-.players-waiting{display:flex;flex-wrap:wrap;justify-content:center;gap:1rem;margin:1.5rem 0}
-.player-chip{background:#0d1117;border:2px solid #444;border-radius:50px;padding:.5rem 1.2rem;font-size:.9rem}
-.player-chip.me{border-color:var(--gold);color:var(--gold)}
-.countdown-bar{width:100%;height:8px;background:#333;border-radius:4px;margin:1rem 0;overflow:hidden}
-.countdown-fill{height:100%;background:linear-gradient(90deg,var(--gold),#d69e2e);transition:width 1s linear}
+#waiting-section{display:none;}
+.waiting-card{background:linear-gradient(160deg,var(--dark2),var(--dark3));border:1px solid var(--border);padding:32px;text-align:center;margin-bottom:20px;}
+.waiting-title{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--gold);letter-spacing:2px;margin-bottom:20px;}
+.players-waiting{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;}
+.pw-slot{width:80px;height:80px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.7rem;font-family:'Cinzel',serif;gap:4px;}
+.pw-slot.filled{background:rgba(201,168,76,.12);border:2px solid rgba(201,168,76,.4);color:var(--gold);}
+.pw-slot.empty{background:rgba(255,255,255,.03);border:2px dashed rgba(255,255,255,.1);color:var(--text-dim);}
+.pw-slot.you{background:rgba(16,185,129,.12);border:2px solid rgba(16,185,129,.5);color:#34d399;}
+.pw-icon{font-size:1.5rem;}
+.countdown-bar{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-bottom:12px;}
+.countdown-fill{height:100%;background:linear-gradient(90deg,var(--gold-dark),var(--gold));transition:width 1s linear;border-radius:3px;}
+.countdown-text{font-family:'Cinzel',serif;font-size:.8rem;color:var(--text-dim);}
+.btn-leave{padding:10px 24px;background:transparent;border:1px solid rgba(239,68,68,.4);color:#f87171;font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-top:16px;}
+.btn-leave:hover{background:rgba(239,68,68,.1);}
 
-/* TABLE */
-#table-screen{position:relative}
-.poker-table{background:radial-gradient(ellipse at center,var(--felt) 0%,var(--green) 60%,#0a2d18 100%);border:12px solid #5d3a1a;border-radius:50%;width:100%;max-width:700px;height:380px;margin:0 auto 2rem;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.8),inset 0 0 60px rgba(0,0,0,.3)}
-.table-pot{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
-.table-pot .pot-label{font-size:.75rem;color:rgba(255,255,255,.6);text-transform:uppercase}
-.table-pot .pot-amount{font-size:1.8rem;font-weight:700;color:var(--gold)}
-.community-cards{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);display:flex;gap:8px}
-.player-seat{position:absolute;text-align:center;width:100px}
-.seat-0{bottom:5%;left:50%;transform:translateX(-50%)}
-.seat-1{bottom:15%;right:2%}
-.seat-2{top:15%;right:2%}
-.seat-3{top:5%;left:50%;transform:translateX(-50%)}
-.seat-4{top:15%;left:2%}
-.seat-5{bottom:15%;left:2%}
-.player-avatar{width:44px;height:44px;border-radius:50%;background:#1a1a2e;border:3px solid #444;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin:0 auto;transition:all .3s}
-.player-avatar.active{border-color:var(--gold);box-shadow:0 0 15px var(--gold);animation:pulse 1.5s infinite}
-.player-avatar.folded{opacity:.4;border-color:#333}
-.player-name{font-size:.75rem;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
-.player-name.me-label{color:var(--gold)}
-.player-cards-mini{display:flex;justify-content:center;gap:3px;margin-top:4px}
+/* JUEGO */
+#game-section{display:none;}
+.felt{background:radial-gradient(ellipse at center,#165a22 0%,#0D3B17 60%,#061a09 100%);border:3px solid var(--gold-dark);padding:24px;margin-bottom:16px;box-shadow:inset 0 0 60px rgba(0,0,0,.6);}
+.pot-banner{text-align:center;font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:3px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:4px;}
+.pot-amount-big{text-align:center;font-family:'Cinzel Decorative',serif;font-size:2rem;color:var(--gold);margin-bottom:6px;filter:drop-shadow(0 0 10px rgba(201,168,76,.4));}
+.phase-badge{display:inline-block;padding:4px 16px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:3px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:20px;}
 
-/* Cards */
-.card{background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;border:1px solid #ddd;box-shadow:0 2px 8px rgba(0,0,0,.5);color:#333;font-size:.9rem;user-select:none}
-.card.red{color:var(--red)}
-.card.big{width:52px;height:76px;font-size:1.2rem}
-.card.mini{width:22px;height:30px;font-size:.65rem}
-.card.community-card{width:48px;height:68px;font-size:1.1rem}
-.card.back{background:linear-gradient(135deg,#1a1a6e,#2d2d8e);color:#fff;font-size:1.2rem}
-.card.face-down{background:linear-gradient(135deg,#1a1a6e,#2d2d8e)}
+.community-row{display:flex;gap:10px;justify-content:center;margin-bottom:20px;min-height:80px;align-items:flex-end;}
+.comm-slot{width:54px;height:76px;border:2px dashed rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.1);font-size:1rem;}
 
-/* My hand */
-.my-hand{display:flex;justify-content:center;gap:12px;margin:1rem 0}
-.hand-card{position:relative}
+.players-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+@media(max-width:600px){.players-grid{grid-template-columns:repeat(2,1fr);}}
+.player-box{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);padding:12px;text-align:center;transition:all .3s;}
+.player-box.active-turn{border-color:var(--gold);box-shadow:0 0 16px rgba(201,168,76,.3);background:rgba(201,168,76,.06);}
+.player-box.folded{opacity:.4;filter:grayscale(.7);}
+.player-box.winner{border-color:#4ade80;box-shadow:0 0 20px rgba(74,222,128,.4);background:rgba(74,222,128,.08);}
+.player-box.you-box{border-color:rgba(96,165,250,.35);}
+.pb-name{font-family:'Cinzel',serif;font-size:.72rem;color:var(--gold);margin-bottom:8px;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pb-cards{display:flex;gap:5px;justify-content:center;min-height:58px;align-items:flex-end;margin-bottom:8px;}
+.pb-status{font-size:.62rem;color:var(--text-dim);letter-spacing:1px;}
+.mini-card{width:38px;height:54px;background:#fff;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.5);}
+.mini-card.red{color:#dc2626;}
+.mini-card.black{color:#111;}
+.mini-card.back{background:linear-gradient(135deg,#1a0030,#3d0060);}
+.mc-rank{font-size:.85rem;font-weight:900;line-height:1;}
+.mc-suit{font-size:.7rem;line-height:1;}
 
-/* Actions */
-.action-panel{background:#1a1a2e;border-radius:12px;padding:1.5rem;border:1px solid #333;margin-top:1rem}
-.action-panel h3{color:var(--gold);margin-bottom:1rem;font-size:1rem;text-align:center}
-.action-info{text-align:center;margin-bottom:1rem;font-size:.9rem;color:#aaa}
-.action-info span{color:#fff;font-weight:600}
-.action-btns{display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center}
-.btn-action{padding:.7rem 1.5rem;border-radius:8px;font-weight:700;cursor:pointer;border:none;font-size:.95rem;transition:all .2s;min-width:100px}
-.btn-fold{background:#c53030;color:#fff}.btn-fold:hover{background:#e53e3e}
-.btn-check{background:#2d3748;color:#fff;border:2px solid #4a5568}.btn-check:hover{background:#4a5568}
-.btn-call{background:#2c7a7b;color:#fff}.btn-call:hover{background:#38b2ac}
-.btn-raise{background:linear-gradient(135deg,var(--gold),#d69e2e);color:#000}.btn-raise:hover{transform:scale(1.05)}
-.raise-input{display:flex;gap:.5rem;margin-top:.75rem;justify-content:center;align-items:center}
-.raise-input input{background:#0d1117;border:2px solid #333;color:#fff;border-radius:8px;padding:.5rem .75rem;font-size:.9rem;width:120px;text-align:center}
-.raise-input input:focus{outline:none;border-color:var(--gold)}
+/* Mi mano */
+.my-hand-area{background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.15);padding:16px;margin-bottom:14px;text-align:center;}
+.my-hand-label{font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:3px;color:var(--text-dim);text-transform:uppercase;margin-bottom:12px;}
+.my-cards-row{display:flex;gap:12px;justify-content:center;}
+.my-card{width:54px;height:76px;background:#fff;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.6);}
+.my-card.red{color:#dc2626;}
+.my-card.black{color:#111;}
+.my-card-r{font-size:1.15rem;font-weight:900;line-height:1;}
+.my-card-s{font-size:.88rem;line-height:1;}
 
-/* Timer */
-.turn-timer{height:4px;background:#333;border-radius:2px;overflow:hidden;margin-bottom:1rem}
-.turn-timer-fill{height:100%;background:var(--gold);transition:width 1s linear}
-.turn-label{font-size:.8rem;color:#888;text-align:center;margin-bottom:.5rem}
+/* Turno */
+.turn-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.18);margin-bottom:8px;}
+.turn-label{font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);}
+.turn-timer{font-family:'Cinzel',serif;font-size:1.3rem;color:var(--gold);min-width:36px;text-align:right;}
+.timer-track{height:3px;background:rgba(255,255,255,.07);margin-bottom:14px;overflow:hidden;}
+.timer-fill{height:100%;background:linear-gradient(90deg,var(--gold-dark),var(--gold));transition:width 1s linear;}
 
-/* Game log */
-.game-log{background:#0d1117;border-radius:8px;padding:1rem;margin-top:1rem;max-height:150px;overflow-y:auto;border:1px solid #1a1a2e}
-.log-entry{font-size:.8rem;color:#999;padding:.2rem 0;border-bottom:1px solid #1a1a2e}
-.log-entry:last-child{border:none;color:#ccc}
-.log-gold{color:var(--gold)}
-.log-red{color:var(--red)}
-.log-blue{color:var(--blue)}
-.phase-badge{display:inline-block;background:#333;padding:.2rem .6rem;border-radius:4px;font-size:.75rem;text-transform:uppercase;letter-spacing:1px;margin-left:.5rem;color:var(--gold);border:1px solid var(--gold)}
+/* Acciones */
+.actions-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;}
+.btn-action{padding:11px 26px;font-family:'Cinzel',serif;font-size:.75rem;letter-spacing:2px;text-transform:uppercase;border:1px solid;cursor:pointer;transition:all .2s;background:transparent;}
+.btn-fold{border-color:#ef4444;color:#ef4444;}
+.btn-fold:hover:not(:disabled){background:rgba(239,68,68,.1);}
+.btn-check{border-color:#60a5fa;color:#60a5fa;}
+.btn-check:hover:not(:disabled){background:rgba(96,165,250,.1);}
+.btn-call{border-color:#4ade80;color:#4ade80;}
+.btn-call:hover:not(:disabled){background:rgba(74,222,128,.1);}
+.btn-raise{border-color:var(--gold);color:var(--gold);}
+.btn-raise:hover:not(:disabled){background:rgba(201,168,76,.1);}
+.btn-action:disabled{opacity:.2;cursor:not-allowed;}
 
-/* Result */
-#result-screen{text-align:center;padding:2rem}
-.result-icon{font-size:4rem;margin-bottom:1rem}
-.result-title{font-size:2.5rem;font-weight:700;color:var(--gold);margin-bottom.5rem}
-.result-amount{font-size:3rem;font-weight:700;color:#48bb78;margin:1rem 0}
-.result-hands{display:flex;flex-wrap:wrap;gap:1rem;justify-content:center;margin:2rem 0}
-.result-player{background:#1a1a2e;border-radius:12px;padding:1rem 1.5rem;min-width:180px;border:2px solid #333}
-.result-player.winner{border-color:var(--gold);background:linear-gradient(135deg,#1a1a2e,#2d2200)}
-.result-player .hand-name{font-size:.8rem;color:#888;margin-top:.5rem}
-.hand-cards-show{display:flex;justify-content:center;gap:6px;margin:.5rem 0}
-.btn-lobby{background:linear-gradient(135deg,var(--gold),#d69e2e);color:#000;border:none;padding:1rem 2.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:1.1rem;margin-top:1.5rem}
-.status-badge{display:inline-block;padding:.2rem .6rem;border-radius:4px;font-size:.75rem;margin-top:.3rem}
-.status-folded{background:#c53030;color:#fff}
-.status-active{background:#276749;color:#fff}
+.raise-row{display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:12px;}
+.raise-input{padding:9px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(201,168,76,.3);color:var(--text);font-family:'Cinzel',serif;font-size:.9rem;width:150px;outline:none;text-align:center;}
+.raise-input:focus{border-color:var(--gold);}
+.raise-label{font-family:'Cinzel',serif;font-size:.65rem;color:var(--text-dim);letter-spacing:1px;}
 
-/* General */
-.screen{display:none}.screen.active{display:block}
-@keyframes pulse{0%,100%{box-shadow:0 0 10px var(--gold)}50%{box-shadow:0 0 25px var(--gold),0 0 40px var(--gold)}}
-.toast{position:fixed;top:1rem;right:1rem;background:#1a1a2e;border:1px solid var(--gold);padding:1rem 1.5rem;border-radius:8px;color:var(--gold);font-weight:600;z-index:999;opacity:0;transition:opacity .3s;max-width:300px}
-.toast.show{opacity:1}
-.toast.error{border-color:var(--red);color:var(--red)}
-@media(max-width:640px){
-  .level-cards{grid-template-columns:1fr}
-  .poker-table{height:280px}
-  .action-btns{gap:.5rem}
-  .btn-action{min-width:80px;padding:.6rem 1rem;font-size:.85rem}
-}
+.game-log{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);padding:10px 14px;max-height:80px;overflow-y:auto;margin-bottom:12px;}
+.log-entry{font-size:.73rem;color:var(--text-dim);line-height:1.6;}
+.log-gold{color:var(--gold);}
+.log-green{color:#4ade80;}
+.log-red{color:#f87171;}
+
+/* Resultado */
+.result-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:200;}
+.result-card{background:linear-gradient(160deg,var(--dark2),var(--dark3));border:2px solid var(--gold);padding:36px;text-align:center;max-width:480px;width:92%;}
+.result-icon{font-size:3rem;margin-bottom:8px;}
+.result-title{font-family:'Cinzel Decorative',serif;font-size:1.9rem;margin-bottom:6px;}
+.result-title.win{background:linear-gradient(180deg,#4ade80,#16a34a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.result-title.loss{color:#f87171;}
+.result-title.draw{color:var(--gold);}
+.result-hand-name{font-family:'Cinzel',serif;font-size:.88rem;color:var(--text-dim);margin-bottom:10px;}
+.result-prize{font-family:'Cinzel',serif;font-size:1.8rem;color:var(--gold);margin:10px 0;}
+.result-community{display:flex;gap:8px;justify-content:center;margin:14px 0;}
+.result-players-list{margin-top:14px;display:flex;flex-direction:column;gap:5px;}
+.rp-row{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;background:rgba(255,255,255,.03);font-size:.8rem;}
+.rp-name{font-family:'Cinzel',serif;font-size:.78rem;}
+.rp-hand{font-size:.68rem;color:var(--text-dim);}
+.rp-val{font-family:'Cinzel',serif;font-size:.78rem;color:var(--text-dim);}
+.rp-val.winner{color:#4ade80;}
+.rp-val.folded{color:#f87171;}
+.btn-new{margin-top:20px;padding:14px 32px;background:linear-gradient(135deg,var(--gold-dark),var(--gold));border:none;color:#0A0805;font-family:'Cinzel',serif;font-size:.85rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;width:100%;}
+.btn-new:hover{background:linear-gradient(135deg,var(--gold),var(--gold-light));}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);padding:11px 24px;background:rgba(10,8,18,.97);border:1px solid var(--border);font-family:'Cinzel',serif;font-size:.8rem;color:var(--gold);z-index:300;display:none;white-space:nowrap;pointer-events:none;}
 </style>
 </head>
 <body>
-<div class="header">
-  <div class="logo">🃏 Casino El Dorado</div>
-  <div class="balance">💰 $<span id="balance-display">0</span></div>
-</div>
-<div id="app">
+
+<nav class="topnav">
+  <a class="back-btn" href="/lobby.html">← Lobby</a>
+  <div class="nav-logo">♠ Texas Hold'em</div>
+  <div class="balance-chip">$<span id="nav-balance">0</span></div>
+</nav>
+
+<div class="main">
+  <div class="game-title">Poker</div>
+  <div class="game-sub">Texas Hold'em · 2 a 6 jugadores · Mejor mano gana</div>
+
   <!-- LOBBY -->
-  <div id="lobby-screen" class="screen active">
-    <h2>♠ Poker Texas Hold'em</h2>
-    <p>Probá tu suerte y habilidad contra otros jugadores en vivo</p>
-    <div class="level-cards">
-      <div class="level-card" data-level="500">
-        <h3>🟢 Mesa Básica</h3>
-        <div class="entry">$500</div>
-        <div class="details">Al pozo: $400<br>Comisión: $100<br>2 a 6 jugadores</div>
-        <div class="tables-info" id="tables-500">Cargando...</div>
-        <button class="btn-join" onclick="joinTable(500)">Entrar</button>
+  <div id="lobby-section">
+    <div class="levels-grid">
+      <div class="level-card" onclick="selectLevel(500)" id="level-500">
+        <div class="level-badge badge-hot">Popular</div>
+        <div class="level-name">Básica</div>
+        <div class="level-entry">$500</div>
+        <div class="level-entry-label">Buy-in</div>
+        <div class="level-info">Pozo mín: <strong>$800</strong><br>Pozo máx: <strong>$4.800</strong><br>Comisión: <strong>20%</strong></div>
       </div>
-      <div class="level-card" data-level="1000">
-        <h3>🟡 Mesa Media</h3>
-        <div class="entry">$1.000</div>
-        <div class="details">Al pozo: $800<br>Comisión: $200<br>2 a 6 jugadores</div>
-        <div class="tables-info" id="tables-1000">Cargando...</div>
-        <button class="btn-join" onclick="joinTable(1000)">Entrar</button>
+      <div class="level-card" onclick="selectLevel(1000)" id="level-1000">
+        <div class="level-name">Media</div>
+        <div class="level-entry">$1.000</div>
+        <div class="level-entry-label">Buy-in</div>
+        <div class="level-info">Pozo mín: <strong>$1.600</strong><br>Pozo máx: <strong>$9.600</strong><br>Comisión: <strong>20%</strong></div>
       </div>
-      <div class="level-card" data-level="5000">
-        <h3>🔴 Mesa Alta</h3>
-        <div class="entry">$5.000</div>
-        <div class="details">Al pozo: $4.000<br>Comisión: $1.000<br>2 a 6 jugadores</div>
-        <div class="tables-info" id="tables-5000">Cargando...</div>
-        <button class="btn-join" onclick="joinTable(5000)">Entrar</button>
+      <div class="level-card" onclick="selectLevel(5000)" id="level-5000">
+        <div class="level-badge badge-vip">VIP</div>
+        <div class="level-name">Alta</div>
+        <div class="level-entry">$5.000</div>
+        <div class="level-entry-label">Buy-in</div>
+        <div class="level-info">Pozo mín: <strong>$8.000</strong><br>Pozo máx: <strong>$48.000</strong><br>Comisión: <strong>20%</strong></div>
       </div>
     </div>
-    <div style="text-align:center;margin-top:1rem">
-      <a href="/lobby.html" style="color:#888;text-decoration:none">← Volver al lobby</a>
-    </div>
+    <div class="tables-info" id="tables-info"><strong>Mesas activas:</strong> Conectando...</div>
+    <button class="btn-join" id="join-btn" onclick="joinTable()" disabled>Seleccioná un nivel</button>
   </div>
 
   <!-- WAITING -->
-  <div id="waiting-screen" class="screen">
-    <h2>♠ Esperando jugadores...</h2>
-    <div class="waiting-info">
-      <div style="font-size:1.1rem;color:#aaa;margin-bottom:1rem">Mesa <span id="w-level" style="color:var(--gold)"></span> — Entrada: $<span id="w-entry"></span></div>
-      <div class="players-waiting" id="w-players"></div>
-      <p style="color:#888;font-size:.9rem;margin-bottom:.5rem">Mínimo 2 jugadores para comenzar</p>
-      <div class="countdown-bar"><div class="countdown-fill" id="countdown-fill" style="width:100%"></div></div>
-      <div id="countdown-text" style="color:var(--gold);font-size:1.2rem;font-weight:700"></div>
+  <div id="waiting-section">
+    <div class="waiting-card">
+      <div class="waiting-title">♠ Sala de espera</div>
+      <div class="players-waiting" id="players-waiting"></div>
+      <div class="countdown-bar"><div class="countdown-fill" id="cd-fill" style="width:0%"></div></div>
+      <div class="countdown-text" id="cd-text">Esperando más jugadores...</div>
+      <button class="btn-leave" onclick="leaveTable()">Abandonar</button>
     </div>
   </div>
 
-  <!-- TABLE -->
-  <div id="table-screen" class="screen">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-      <h3 style="color:var(--gold)">♠ Mesa Poker <span class="phase-badge" id="phase-badge">preflop</span></h3>
-      <span style="color:#888;font-size:.85rem">Pozo: $<strong id="pot-display" style="color:var(--gold)"></strong></span>
+  <!-- JUEGO -->
+  <div id="game-section">
+    <div class="felt">
+      <div style="text-align:center;margin-bottom:16px;">
+        <div class="pot-banner">Pozo total</div>
+        <div class="pot-amount-big">$<span id="pot-display">0</span></div>
+        <div class="phase-badge" id="phase-badge">Pre-Flop</div>
+      </div>
+      <div class="community-row" id="community-row">
+        <div class="comm-slot">?</div><div class="comm-slot">?</div><div class="comm-slot">?</div>
+        <div class="comm-slot">?</div><div class="comm-slot">?</div>
+      </div>
+      <div class="players-grid" id="players-grid"></div>
     </div>
 
-    <div class="poker-table" id="poker-table">
-      <div class="community-cards" id="community-cards"></div>
-      <div class="table-pot">
-        <div class="pot-label">Pozo</div>
-        <div class="pot-amount">$<span id="pot-amount">0</span></div>
-      </div>
-      <div id="player-seats"></div>
-    </div>
-
-    <div style="text-align:center;font-size:.9rem;color:#888;margin-bottom:.5rem">Tus cartas:</div>
-    <div class="my-hand" id="my-hand"></div>
-
-    <div id="action-panel" class="action-panel" style="display:none">
-      <div class="turn-timer"><div class="turn-timer-fill" id="turn-timer-fill" style="width:100%"></div></div>
-      <div class="turn-label">Tu turno — <span id="timer-label">30s</span></div>
-      <h3>¿Qué hacés?</h3>
-      <div class="action-info">Apuesta actual: $<span id="current-bet">0</span> | Tu apuesta: $<span id="my-bet">0</span></div>
-      <div class="action-btns">
-        <button class="btn-action btn-fold" onclick="sendAction('fold')">Fold</button>
-        <button class="btn-action btn-check" id="btn-check" onclick="sendAction('check')">Check</button>
-        <button class="btn-action btn-call" id="btn-call" onclick="sendAction('call')">Call</button>
-        <button class="btn-action btn-raise" onclick="toggleRaise()">Raise ▲</button>
-      </div>
-      <div class="raise-input" id="raise-input" style="display:none">
-        <input type="number" id="raise-amount" placeholder="Monto" min="0">
-        <button class="btn-action btn-raise" onclick="sendRaise()" style="min-width:80px">Subir</button>
+    <div class="my-hand-area">
+      <div class="my-hand-label">Tu mano</div>
+      <div class="my-cards-row" id="my-cards-row">
+        <div class="my-card black"><div class="my-card-r">?</div><div class="my-card-s">—</div></div>
+        <div class="my-card black"><div class="my-card-r">?</div><div class="my-card-s">—</div></div>
       </div>
     </div>
 
-    <div id="waiting-turn" style="text-align:center;padding:1rem;color:#888;font-size:.9rem">
-      Esperando tu turno...
+    <div class="turn-bar">
+      <span class="turn-label" id="turn-label">Esperando...</span>
+      <span class="turn-timer" id="turn-timer">—</span>
+    </div>
+    <div class="timer-track"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>
+
+    <div class="raise-row" id="raise-row" style="display:none;">
+      <span class="raise-label">Subir a $:</span>
+      <input class="raise-input" id="raise-amount" type="number" placeholder="0" min="0">
+      <button class="btn-action btn-raise" onclick="confirmRaise()">Confirmar</button>
+    </div>
+
+    <div class="actions-row">
+      <button class="btn-action btn-fold"  id="btn-fold"  onclick="doAction('fold')"  disabled>Fold</button>
+      <button class="btn-action btn-check" id="btn-check" onclick="doAction('check')" disabled>Check</button>
+      <button class="btn-action btn-call"  id="btn-call"  onclick="doAction('call')"  disabled>Call</button>
+      <button class="btn-action btn-raise" id="btn-raise" onclick="toggleRaise()"     disabled>Raise ↑</button>
     </div>
 
     <div class="game-log" id="game-log"></div>
   </div>
+</div>
 
-  <!-- RESULT -->
-  <div id="result-screen" class="screen">
-    <div class="result-icon" id="result-icon">🎉</div>
-    <div class="result-title" id="result-title">Resultado</div>
-    <div class="result-amount" id="result-amount"></div>
-    <div class="result-hands" id="result-hands"></div>
-    <div id="community-final" style="display:flex;justify-content:center;gap:8px;margin-bottom:1rem"></div>
-    <button class="btn-lobby" onclick="goLobby()">Jugar de nuevo</button>
+<!-- RESULTADO -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-card">
+    <div class="result-icon" id="result-icon">🃏</div>
+    <div class="result-title" id="result-title"></div>
+    <div class="result-hand-name" id="result-hand-name"></div>
+    <div class="result-prize" id="result-prize"></div>
+    <div class="result-community" id="result-community"></div>
+    <div class="result-players-list" id="result-players-list"></div>
+    <button class="btn-new" onclick="resetLobby()">Jugar de nuevo</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const token = localStorage.getItem('token');
-const username = localStorage.getItem('username');
-if (!token) { window.location.href = '/'; }
+// ── AUTH ──────────────────────────────────────────────────────
+const token = localStorage.getItem('casino_token');
+const user  = JSON.parse(localStorage.getItem('casino_user') || '{}');
+if (!token) { window.location.href = '/index.html'; }
 
-let socket, myTableId, myUserId, myBalance=0, currentPhase='', minBet=0, myBetAmount=0;
-let timerInterval;
+document.getElementById('nav-balance').textContent = parseFloat(user.balance || 0).toLocaleString('es-AR');
 
-// Get user info
-async function loadBalance() {
-  try {
-    const r = await fetch('/api/auth/me', { headers:{'Authorization':'Bearer '+token} });
-    if (r.status===401) { localStorage.clear(); window.location.href='/'; return; }
-    const d = await r.json();
-    myBalance = d.balance;
-    myUserId = d.id;
-    document.getElementById('balance-display').textContent = Number(d.balance).toLocaleString('es-AR');
-  } catch(e){}
+// ── STATE ────────────────────────────────────────────────────
+let selectedLevel = null;
+let tableId       = null;
+let isMyTurn      = false;
+let currentMinBet = 0;
+let timerInterval = null;
+let cdInterval    = null;
+
+// ── SOCKET ───────────────────────────────────────────────────
+const socket = io({ auth: { token } });
+
+socket.on('connect', () => socket.emit('poker:getTables'));
+
+socket.on('poker:tables', (data) => {
+  let parts = [];
+  for (const [lvl, tables] of Object.entries(data)) {
+    const w = tables.filter(t => t.status === 'waiting');
+    if (w.length) parts.push(`$${parseInt(lvl).toLocaleString('es-AR')}: ${w[0].players}/${w[0].max}`);
+  }
+  document.getElementById('tables-info').innerHTML = parts.length
+    ? '<strong>Mesas activas:</strong> ' + parts.join(' · ')
+    : '<strong>Sin mesas activas.</strong> Sé el primero en entrar.';
+});
+
+socket.on('poker:joined', (data) => {
+  tableId = data.tableId;
+  showSection('waiting');
+  toast(`Mesa $${Number(data.level).toLocaleString('es-AR')} — buy-in descontado`);
+});
+
+socket.on('poker:playerJoined', (data) => {
+  renderWaiting(data.players, data.needed);
+});
+
+socket.on('poker:countdown', (data) => startCountdown(data.seconds));
+
+socket.on('poker:yourHand', (data) => {
+  renderMyHand(data.hand);
+});
+
+socket.on('poker:gameStart', (data) => {
+  showSection('game');
+  document.getElementById('pot-display').textContent = Number(data.pot).toLocaleString('es-AR');
+  updatePhase(data.phase);
+  renderPlayers(data.players);
+  renderCommunity([]);
+  setTurnUI(data.currentPlayer);
+  startTimer(30);
+  addLog(`🃏 Partida iniciada — ${data.players.length} jugadores · Pozo $${Number(data.pot).toLocaleString('es-AR')}`, 'log-gold');
+});
+
+socket.on('poker:action', (data) => {
+  const labels = {
+    fold: 'se fue (fold)',
+    check: 'chequeó',
+    call: 'igualó (call)',
+    raise: `subió a $${Number(data.amount || 0).toLocaleString('es-AR')}`
+  };
+  const isMe = data.playerId === user.id;
+  addLog(`${isMe ? '⭐ Vos' : data.username} ${labels[data.action] || data.action}`, isMe ? 'log-gold' : '');
+  if (data.action === 'fold') {
+    const box = document.getElementById('pb-' + data.playerId);
+    if (box) { box.classList.add('folded'); const st = box.querySelector('.pb-status'); if(st) st.textContent = 'Fold'; }
+  }
+});
+
+socket.on('poker:turnChange', (data) => {
+  clearTimer();
+  currentMinBet = data.minBet || 0;
+  if (data.community) renderCommunity(data.community);
+  updatePhase(data.phase);
+  setTurnUI(data.currentPlayer);
+  startTimer(30);
+  addLog(`─── ${phaseLabel(data.phase)} ───`, 'log-gold');
+});
+
+socket.on('poker:timerStart', (data) => startTimer(data.seconds));
+
+socket.on('poker:gameEnd', (data) => {
+  clearTimer();
+  setActions(false);
+  if (data.community) renderCommunity(data.community);
+  showResult(data);
+  setTimeout(refreshBalance, 1500);
+});
+
+socket.on('poker:error', (msg) => {
+  toast('❌ ' + msg, true);
+  // Reactivar botón si falló el join
+  document.getElementById('join-btn').disabled = false;
+  if (selectedLevel) document.getElementById('join-btn').textContent = `Entrar — Buy-in $${Number(selectedLevel).toLocaleString('es-AR')}`;
+});
+
+socket.on('connect_error', (e) => toast('❌ ' + e.message, true));
+
+// ── LOBBY ────────────────────────────────────────────────────
+function selectLevel(level) {
+  selectedLevel = level;
+  document.querySelectorAll('.level-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('level-' + level).classList.add('selected');
+  const btn = document.getElementById('join-btn');
+  btn.disabled = false;
+  btn.textContent = `Entrar — Buy-in $${Number(level).toLocaleString('es-AR')}`;
 }
 
-function initSocket() {
-  socket = io({ auth:{ token } });
+function joinTable() {
+  if (!selectedLevel) return;
+  const btn = document.getElementById('join-btn');
+  btn.disabled = true;
+  btn.textContent = 'Conectando...';
+  socket.emit('poker:join', { level: selectedLevel });
+}
 
-  socket.on('connect', () => {
-    socket.emit('poker:getTables');
-  });
+function leaveTable() {
+  socket.disconnect();
+  location.reload();
+}
 
-  socket.on('poker:tables', (data) => {
-    for (const level of [500,1000,5000]) {
-      const tables = data[level]||[];
-      const el = document.getElementById('tables-'+level);
-      if (!el) continue;
-      const waiting = tables.filter(t=>t.status==='waiting');
-      const playing = tables.filter(t=>t.status==='playing');
-      el.innerHTML = waiting.length
-        ? `<span style="color:#68d391">▶ Mesa abierta (${waiting[0].players}/${waiting[0].max})</span>`
-        : `<span style="color:#888">Sin mesas — se crea automático</span>`;
+// ── ACCIONES ─────────────────────────────────────────────────
+function doAction(action) {
+  if (!isMyTurn) return;
+  setActions(false);
+  document.getElementById('raise-row').style.display = 'none';
+  socket.emit('poker:action', { action });
+}
+
+function toggleRaise() {
+  if (!isMyTurn) return;
+  const row = document.getElementById('raise-row');
+  row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+  if (row.style.display !== 'none') {
+    document.getElementById('raise-amount').value = currentMinBet * 2 || selectedLevel;
+    document.getElementById('raise-amount').focus();
+  }
+}
+
+function confirmRaise() {
+  const amount = parseInt(document.getElementById('raise-amount').value);
+  if (!amount || amount <= currentMinBet) { toast('Debe ser mayor a $' + currentMinBet, true); return; }
+  setActions(false);
+  document.getElementById('raise-row').style.display = 'none';
+  socket.emit('poker:action', { action: 'raise', amount });
+}
+
+// ── RENDER ───────────────────────────────────────────────────
+function showSection(name) {
+  document.getElementById('lobby-section').style.display   = name === 'lobby'   ? 'block' : 'none';
+  document.getElementById('waiting-section').style.display = name === 'waiting' ? 'block' : 'none';
+  document.getElementById('game-section').style.display    = name === 'game'    ? 'block' : 'none';
+}
+
+function renderWaiting(players, needed) {
+  let html = '';
+  for (let i = 0; i < 6; i++) {
+    const p = players[i];
+    if (p) {
+      const isMe = p.id === user.id;
+      html += `<div class="pw-slot ${isMe ? 'you' : 'filled'}">
+        <div class="pw-icon">${isMe ? '⭐' : '👤'}</div>
+        <div>${p.username.substring(0, 8)}</div>
+      </div>`;
+    } else {
+      html += `<div class="pw-slot empty"><div class="pw-icon">○</div><div>Vacío</div></div>`;
     }
-  });
-
-  socket.on('poker:error', (msg) => toast(msg, true));
-
-  socket.on('poker:joined', ({ tableId, level, entry }) => {
-    myTableId = tableId;
-    showScreen('waiting-screen');
-    document.getElementById('w-level').textContent = '$'+Number(level).toLocaleString('es-AR');
-    document.getElementById('w-entry').textContent = Number(entry).toLocaleString('es-AR');
-    addLog(`Entraste a la mesa. Entrada: $${Number(entry).toLocaleString('es-AR')}`, 'gold');
-  });
-
-  socket.on('poker:playerJoined', ({ players, needed }) => {
-    const container = document.getElementById('w-players');
-    container.innerHTML = players.map(p=>`<div class="player-chip ${p.username===username?'me':''}">${p.username===username?'⭐ ':''} ${p.username}</div>`).join('');
-    if (needed > 0) document.getElementById('countdown-text').textContent = `Faltan ${needed} jugador${needed!==1?'es':''}`;
-    else document.getElementById('countdown-text').textContent = '¡Comenzando en 15 segundos!';
-  });
-
-  socket.on('poker:countdown', ({ seconds }) => {
-    startCountdown(seconds);
-  });
-
-  socket.on('poker:gameStart', ({ players, pot, commission, community, phase, currentTurn, currentPlayer }) => {
-    showScreen('table-screen');
-    currentPhase = phase;
-    document.getElementById('phase-badge').textContent = phaseName(phase);
-    document.getElementById('pot-amount').textContent = Number(pot).toLocaleString('es-AR');
-    document.getElementById('pot-display').textContent = Number(pot).toLocaleString('es-AR');
-    renderSeats(players, currentTurn);
-    renderCommunity(community);
-    addLog(`🃏 ¡El juego comenzó! ${players.length} jugadores. Pozo: $${Number(pot).toLocaleString('es-AR')}`, 'gold');
-    updateTurnUI(currentTurn, currentPlayer, players);
-  });
-
-  socket.on('poker:yourHand', ({ hand }) => {
-    renderMyHand(hand);
-  });
-
-  socket.on('poker:action', ({ playerId, username: uname, action, amount }) => {
-    const labels = { fold:'Fold 🗑️', check:'Check ✓', call:'Call 📞', raise:`Raise ↑ $${Number(amount).toLocaleString('es-AR')}` };
-    const cls = action==='fold'?'red': action==='raise'?'gold':'blue';
-    addLog(`${uname}: ${labels[action]||action}`, cls);
-    if (action==='fold') markFolded(playerId);
-  });
-
-  socket.on('poker:turnChange', ({ currentTurn, currentPlayer, phase, community, minBet: mb }) => {
-    currentPhase = phase;
-    minBet = mb||0;
-    document.getElementById('phase-badge').textContent = phaseName(phase);
-    if (community) renderCommunity(community);
-    updateSeatsActive(currentTurn);
-    updateTurnUI(currentTurn, currentPlayer, null);
-    addLog(`Turno: ${currentPlayer} | Fase: ${phaseName(phase)}`, 'blue');
-  });
-
-  socket.on('poker:timerStart', ({ seconds }) => {
-    startTurnTimer(seconds);
-  });
-
-  socket.on('poker:gameEnd', ({ result, winners, prize, allPlayers, pot, community }) => {
-    clearTurnTimer();
-    if (community) renderCommunity(community);
-    showResult(result, winners, prize, allPlayers);
-    loadBalance();
-  });
+  }
+  document.getElementById('players-waiting').innerHTML = html;
 }
 
-// ── UI ────────────────────────────────────────────────────────
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+function renderPlayers(players) {
+  document.getElementById('players-grid').innerHTML = players.map(p => {
+    const isMe = p.id === user.id;
+    return `<div class="player-box ${isMe ? 'you-box' : ''}" id="pb-${p.id}">
+      <div class="pb-name">${isMe ? '⭐ ' : ''}${p.username}</div>
+      <div class="pb-cards" id="pc-${p.id}">
+        <div class="mini-card back"></div>
+        <div class="mini-card back"></div>
+      </div>
+      <div class="pb-status" id="ps-${p.id}">En juego</div>
+    </div>`;
+  }).join('');
 }
 
-function cardHTML(card, size='big') {
-  if (!card) return `<div class="card back ${size}">🂠</div>`;
-  const isRed = card.s==='♥'||card.s==='♦';
-  return `<div class="card ${size} ${isRed?'red':''}">${card.r}${card.s}</div>`;
-}
-
-function renderMyHand(hand) {
-  document.getElementById('my-hand').innerHTML = hand.map(c=>cardHTML(c,'big')).join('');
+function renderMyHand(cards) {
+  document.getElementById('my-cards-row').innerHTML = cards.map(c => {
+    const isRed = ['♥', '♦'].includes(c.s);
+    return `<div class="my-card ${isRed ? 'red' : 'black'}">
+      <div class="my-card-r">${c.r}</div>
+      <div class="my-card-s">${c.s}</div>
+    </div>`;
+  }).join('');
 }
 
 function renderCommunity(cards) {
-  const el = document.getElementById('community-cards');
-  el.innerHTML = cards.map(c=>cardHTML(c,'community-card')).join('');
-  // Rellenar slots vacíos
-  const empty = 5 - cards.length;
-  for (let i=0; i<empty; i++) el.innerHTML += `<div class="card community-card face-down"></div>`;
+  let html = cards.map(c => {
+    const isRed = ['♥', '♦'].includes(c.s);
+    return `<div class="mini-card ${isRed ? 'red' : 'black'}" style="width:54px;height:76px;">
+      <div class="mc-rank" style="font-size:1rem;font-weight:900">${c.r}</div>
+      <div class="mc-suit" style="font-size:.8rem">${c.s}</div>
+    </div>`;
+  }).join('');
+  for (let i = cards.length; i < 5; i++) html += `<div class="comm-slot">?</div>`;
+  document.getElementById('community-row').innerHTML = html;
 }
 
-const SEAT_CLASSES = ['seat-0','seat-1','seat-2','seat-3','seat-4','seat-5'];
+function updatePhase(phase) {
+  document.getElementById('phase-badge').textContent = phaseLabel(phase);
+}
 
-function renderSeats(players, currentTurn) {
-  const container = document.getElementById('player-seats');
-  container.innerHTML = '';
-  players.forEach((p,i) => {
-    const isMe = p.username === username;
-    const isActive = i === currentTurn;
-    const div = document.createElement('div');
-    div.className = `player-seat ${SEAT_CLASSES[i]}`;
-    div.id = `seat-${p.id}`;
-    div.innerHTML = `
-      <div class="player-avatar ${isActive?'active':''} ${p.status==='folded'?'folded':''}">${p.username[0].toUpperCase()}</div>
-      <div class="player-name ${isMe?'me-label':''}">${isMe?'⭐ '+p.username:p.username}</div>
-    `;
-    container.appendChild(div);
+function phaseLabel(phase) {
+  return { preflop:'Pre-Flop', flop:'Flop', turn:'Turn', river:'River', showdown:'Showdown' }[phase] || phase;
+}
+
+function setTurnUI(currentPlayer) {
+  document.querySelectorAll('.player-box').forEach(b => b.classList.remove('active-turn'));
+  const isMe = currentPlayer === user.username;
+  isMyTurn = isMe;
+
+  document.querySelectorAll('.pb-name').forEach(el => {
+    const name = el.textContent.replace('⭐ ', '');
+    if (name === currentPlayer) el.closest('.player-box').classList.add('active-turn');
   });
+
+  const lbl = document.getElementById('turn-label');
+  lbl.textContent = isMe ? '🎯 ¡Es tu turno!' : `Turno de ${currentPlayer}`;
+  lbl.style.color = isMe ? '#4ade80' : 'var(--gold)';
+  setActions(isMe);
 }
 
-function updateSeatsActive(currentTurn) {
-  document.querySelectorAll('.player-avatar').forEach((el,i) => {
-    el.classList.toggle('active', i === currentTurn);
+function setActions(on) {
+  ['btn-fold', 'btn-check', 'btn-call', 'btn-raise'].forEach(id => {
+    document.getElementById(id).disabled = !on;
   });
+  if (!on) document.getElementById('raise-row').style.display = 'none';
 }
 
-function markFolded(playerId) {
-  const seat = document.getElementById('seat-'+playerId);
-  if (seat) {
-    const avatar = seat.querySelector('.player-avatar');
-    if (avatar) { avatar.classList.remove('active'); avatar.classList.add('folded'); }
-  }
+// ── TIMER ─────────────────────────────────────────────────────
+function startTimer(seconds) {
+  clearTimer();
+  let rem = seconds;
+  document.getElementById('turn-timer').textContent = rem;
+  document.getElementById('timer-fill').style.width = '100%';
+  timerInterval = setInterval(() => {
+    rem--;
+    document.getElementById('turn-timer').textContent = rem;
+    document.getElementById('timer-fill').style.width = (rem / seconds * 100) + '%';
+    document.getElementById('turn-timer').style.color = rem <= 5 ? '#f87171' : 'var(--gold)';
+    if (rem <= 0) clearTimer();
+  }, 1000);
 }
 
-function updateTurnUI(currentTurn, currentPlayer, players) {
-  const currentPlayers = players || Array.from(document.querySelectorAll('.player-name')).map((el,i)=>({username:el.textContent.replace('⭐ ','')}));
-  const isMyTurn = currentPlayer === username;
-  document.getElementById('action-panel').style.display = isMyTurn ? 'block' : 'none';
-  document.getElementById('waiting-turn').style.display = isMyTurn ? 'none' : 'block';
-  document.getElementById('current-bet').textContent = Number(minBet).toLocaleString('es-AR');
-  document.getElementById('my-bet').textContent = Number(myBetAmount).toLocaleString('es-AR');
-  if (isMyTurn) {
-    const checkBtn = document.getElementById('btn-check');
-    const callBtn = document.getElementById('btn-call');
-    if (minBet > myBetAmount) {
-      checkBtn.disabled = true; checkBtn.style.opacity = '.4';
-      callBtn.disabled = false; callBtn.textContent = `Call $${Number(minBet).toLocaleString('es-AR')}`;
-    } else {
-      checkBtn.disabled = false; checkBtn.style.opacity = '1';
-      callBtn.disabled = true; callBtn.style.opacity = '.4';
-    }
-  }
+function clearTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 }
 
-function phaseName(p) {
-  const names = { preflop:'Pre-flop', flop:'Flop', turn:'Turn', river:'River', showdown:'Showdown' };
-  return names[p] || p;
+function startCountdown(seconds) {
+  clearInterval(cdInterval);
+  let rem = seconds;
+  cdInterval = setInterval(() => {
+    rem--;
+    document.getElementById('cd-fill').style.width = ((seconds - rem) / seconds * 100) + '%';
+    document.getElementById('cd-text').textContent = rem > 0 ? `Iniciando en ${rem}s...` : '¡Comenzando!';
+    if (rem <= 0) clearInterval(cdInterval);
+  }, 1000);
 }
 
-function addLog(msg, type='') {
+// ── LOG ──────────────────────────────────────────────────────
+function addLog(msg, cls) {
   const log = document.getElementById('game-log');
   const d = document.createElement('div');
-  d.className = `log-entry ${type?'log-'+type:''}`;
+  d.className = 'log-entry' + (cls ? ' ' + cls : '');
   d.textContent = msg;
   log.appendChild(d);
   log.scrollTop = log.scrollHeight;
 }
 
-// ── ACTIONS ───────────────────────────────────────────────────
-function joinTable(level) {
-  if (!socket || !socket.connected) return toast('No conectado al servidor', true);
-  socket.emit('poker:join', { level });
-  document.querySelectorAll('.btn-join').forEach(b=>b.disabled=true);
+// ── RESULTADO ────────────────────────────────────────────────
+function showResult(data) {
+  const isWinner = data.winners?.some(w => w.id === user.id);
+  const isDraw   = data.result === 'draw';
+
+  document.getElementById('result-icon').textContent = isWinner ? '🏆' : isDraw ? '🤝' : '😔';
+  const titleEl = document.getElementById('result-title');
+  titleEl.textContent = isWinner ? '¡GANASTE!' : isDraw ? 'Empate' : 'No fue esta vez';
+  titleEl.className = 'result-title ' + (isWinner ? 'win' : isDraw ? 'draw' : 'loss');
+
+  const myWin = data.winners?.find(w => w.id === user.id);
+  document.getElementById('result-hand-name').textContent = myWin?.handName ? `Tu mano: ${myWin.handName}` : '';
+  document.getElementById('result-prize').textContent = isWinner && data.prize
+    ? '+$' + Number(data.prize).toLocaleString('es-AR') : '';
+
+  if (data.community?.length) {
+    document.getElementById('result-community').innerHTML = data.community.map(c => {
+      const isRed = ['♥','♦'].includes(c.s);
+      return `<div style="width:44px;height:62px;background:#fff;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.5);color:${isRed?'#dc2626':'#111'}">
+        <div style="font-size:.9rem;font-weight:900">${c.r}</div><div style="font-size:.75rem">${c.s}</div>
+      </div>`;
+    }).join('');
+  }
+
+  if (data.allPlayers) {
+    document.getElementById('result-players-list').innerHTML = data.allPlayers.map(p => {
+      const won    = data.winners?.some(w => w.id === p.id);
+      const folded = p.status === 'folded';
+      return `<div class="rp-row">
+        <span class="rp-name">${p.username}${won ? ' 🏆' : ''}</span>
+        <span class="rp-hand">${p.handName || '—'}</span>
+        <span class="rp-val ${folded ? 'folded' : won ? 'winner' : ''}">${folded ? 'Fold' : won ? '+$' + Number(data.prize||0).toLocaleString('es-AR') : '—'}</span>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('result-overlay').style.display = 'flex';
+  if (isWinner) confetti();
 }
 
-function sendAction(action) {
-  if (!socket) return;
-  socket.emit('poker:action', { action });
-  document.getElementById('action-panel').style.display = 'none';
-  document.getElementById('waiting-turn').style.display = 'block';
-  clearTurnTimer();
-}
-
-function toggleRaise() {
-  const panel = document.getElementById('raise-input');
-  panel.style.display = panel.style.display==='none' ? 'flex' : 'none';
-  if (panel.style.display!=='none') document.getElementById('raise-amount').focus();
-}
-
-function sendRaise() {
-  const amount = parseInt(document.getElementById('raise-amount').value);
-  if (!amount || amount <= minBet) return toast('El raise debe ser mayor a la apuesta actual ($'+minBet+')', true);
-  socket.emit('poker:action', { action:'raise', amount });
-  document.getElementById('action-panel').style.display = 'none';
-  clearTurnTimer();
-}
-
-// ── TIMERS ────────────────────────────────────────────────────
-function startCountdown(seconds) {
-  let remaining = seconds;
-  const fill = document.getElementById('countdown-fill');
-  const text = document.getElementById('countdown-text');
-  clearInterval(timerInterval);
-  timerInterval = setInterval(()=>{
-    remaining--;
-    fill.style.width = (remaining/seconds*100)+'%';
-    if (remaining <= 0) clearInterval(timerInterval);
-    else text.textContent = `¡Comenzando en ${remaining}s!`;
-  },1000);
-}
-
-let turnTimerInterval;
-function startTurnTimer(seconds) {
-  clearTurnTimer();
-  let remaining = seconds;
-  const fill = document.getElementById('turn-timer-fill');
-  const label = document.getElementById('timer-label');
-  fill.style.width = '100%';
-  turnTimerInterval = setInterval(()=>{
-    remaining--;
-    fill.style.width = (remaining/seconds*100)+'%';
-    if (label) label.textContent = remaining+'s';
-    if (remaining <= 0) clearTurnTimer();
-  },1000);
-}
-
-function clearTurnTimer() {
-  clearInterval(turnTimerInterval);
-}
-
-// ── RESULT ────────────────────────────────────────────────────
-function showResult(type, winners, prize, allPlayers) {
-  const isWinner = winners.some(w=>w.username===username);
-  document.getElementById('result-icon').textContent = isWinner ? '🎉' : '😔';
-  document.getElementById('result-title').textContent = isWinner ? '¡Ganaste!' : (type==='draw'?'Empate':'Perdiste';
-  document.getElementById('result-amount').textContent = isWinner ? `+$${Number(prize).toLocaleString('es-AR')}` : '';
-  document.getElementById('result-amount').style.color = isWinner ? '#48bb78' : '#e53e3e';
-
-  const handsEl = document.getElementById('result-hands');
-  handsEl.innerHTML = (allPlayers||[]).map(p => {
-    const isW = winners.some(w=>w.id===p.id);
-    const handInfo = winners.find(w=>w.id===p.id);
-    return `<div class="result-player ${isW?'winner':''}">
-      <div style="font-weight:700;${p.username===username?'color:var(--gold)':''}">
-        ${isW?'🏆 ':''}${p.username}
-      </div>
-      ${p.hand ? `<div class="hand-cards-show">${p.hand.map(c=>cardHTML(c,'mini')).join('')}</div>` : ''}
-      <div class="hand-name">${handInfo?.handName||p.handName||'Foldeó'}</div>
-      <div class="status-badge ${isW?'status-active':p.status==='folded'?'status-folded':'status-active'}">${isW?'Ganador':p.status==='folded'?'Fold':'—'}</div>
-    </div>`;
-  }).join('');
-
-  setTimeout(()=>showScreen('result-screen'), 500);
-}
-
-function goLobby() {
-  showScreen('lobby-screen');
-  if (socket) socket.emit('poker:getTables');
-  loadBalance();
-  document.querySelectorAll('.btn-join').forEach(b=>b.disabled=false);
+function resetLobby() {
+  document.getElementById('result-overlay').style.display = 'none';
+  tableId = null; isMyTurn = false; currentMinBet = 0; selectedLevel = null;
+  document.getElementById('join-btn').disabled = true;
+  document.getElementById('join-btn').textContent = 'Seleccioná un nivel';
+  document.querySelectorAll('.level-card').forEach(c => c.classList.remove('selected'));
   document.getElementById('game-log').innerHTML = '';
+  showSection('lobby');
+  socket.emit('poker:getTables');
 }
 
-// ── TOAST ─────────────────────────────────────────────────────
-function toast(msg, isError=false) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (isError?' error':'');
-  setTimeout(()=>t.className='toast',4000);
+async function refreshBalance() {
+  try {
+    const r = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+    const d = await r.json();
+    document.getElementById('nav-balance').textContent = parseFloat(d.balance || 0).toLocaleString('es-AR');
+    localStorage.setItem('casino_user', JSON.stringify(d));
+  } catch(e) {}
 }
 
-loadBalance().then(initSocket);
-setInterval(()=>{ if(socket&&socket.connected) socket.emit('poker:getTables'); }, 10000);
+function confetti() {
+  const colors = ['#C9A84C','#F0D080','#fff','#4ade80'];
+  const s = document.createElement('style');
+  s.textContent = `@keyframes cffall{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}`;
+  document.head.appendChild(s);
+  for (let i = 0; i < 50; i++) {
+    const el = document.createElement('div');
+    const sz = Math.random() * 10 + 5;
+    el.style.cssText = `position:fixed;top:${Math.random()*20}%;left:${Math.random()*100}%;width:${sz}px;height:${sz}px;background:${colors[Math.floor(Math.random()*4)]};border-radius:${Math.random()>.5?'50%':'2px'};pointer-events:none;z-index:9999;animation:cffall ${1.5+Math.random()*2}s ease forwards;`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+}
+
+let toastTimer;
+function toast(msg, isError) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = isError ? 'rgba(239,68,68,.5)' : 'var(--border)';
+  el.style.color = isError ? '#f87171' : 'var(--gold)';
+  el.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.style.display = 'none', 3500);
+}
 </script>
 </body>
 </html>
