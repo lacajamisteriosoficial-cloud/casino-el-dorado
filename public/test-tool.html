@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔧 Dev Testing Tool — Casino El Dorado</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="/socket.io/socket.io.js"></script>
+<style>
+:root{--gold:#C9A84C;--gold-light:#F0D080;--gold-dark:#8B6914;--dark:#060608;--dark2:#0E0E14;--dark3:#16161F;--border:rgba(201,168,76,0.18);--text:#E8DCC8;--text-dim:#6A6050;--green:#16a34a;--red:#dc2626;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);min-height:100vh;font-size:14px;}
+
+/* HEADER */
+.header{background:rgba(6,6,8,.98);border-bottom:2px solid var(--gold-dark);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;}
+.header-title{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--gold);display:flex;align-items:center;gap:8px;}
+.header-sub{font-size:.65rem;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;}
+.header-actions{display:flex;gap:8px;}
+.hbtn{padding:7px 14px;font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:1px;text-transform:uppercase;background:transparent;border:1px solid var(--border);color:var(--text-dim);cursor:pointer;transition:all .2s;text-decoration:none;}
+.hbtn:hover{border-color:var(--gold);color:var(--gold);}
+.hbtn.primary{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.06);}
+.hbtn.danger{border-color:rgba(239,68,68,.4);color:#f87171;}
+.hbtn.danger:hover{background:rgba(239,68,68,.1);}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:260px 1fr;height:calc(100vh - 56px);}
+.sidebar{background:var(--dark2);border-right:1px solid var(--border);overflow-y:auto;padding:16px;}
+.content{overflow-y:auto;padding:16px;}
+
+/* SIDEBAR */
+.s-section{margin-bottom:20px;}
+.s-title{font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.s-btn{width:100%;padding:9px 12px;font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;background:transparent;border:1px solid var(--border);color:var(--text-dim);cursor:pointer;transition:all .2s;text-align:left;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.s-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.04);}
+.s-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08);}
+.s-btn-icon{font-size:1rem;}
+
+/* STATUS CARDS */
+.bots-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;}
+.bot-card{background:var(--dark3);border:1px solid var(--border);padding:8px;text-align:center;}
+.bot-name{font-family:'Cinzel',serif;font-size:.62rem;color:var(--gold);}
+.bot-balance{font-size:.7rem;color:var(--text-dim);}
+.bot-status{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;}
+.bot-status.online{background:#4ade80;}
+.bot-status.offline{background:#6b7280;}
+.bot-status.playing{background:#fbbf24;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* MAIN CONTENT TABS */
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.tab{padding:10px 18px;font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;transition:all .2s;}
+.tab:hover{color:var(--gold);}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* PANELS */
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* SETUP PANEL */
+.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+@media(max-width:700px){.setup-grid{grid-template-columns:1fr;}}
+.setup-card{background:var(--dark2);border:1px solid var(--border);padding:16px;}
+.setup-card-title{font-family:'Cinzel',serif;font-size:.75rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:14px;}
+.form-row{margin-bottom:10px;}
+.form-label{font-size:.68rem;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;}
+.form-input,.form-select{width:100%;padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);font-family:'Inter',sans-serif;font-size:.82rem;outline:none;}
+.form-input:focus,.form-select:focus{border-color:var(--gold);}
+.form-select option{background:var(--dark2);}
+.btn-run{padding:10px 20px;background:linear-gradient(135deg,var(--gold-dark),var(--gold));border:none;color:#0A0805;font-family:'Cinzel',serif;font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;width:100%;margin-top:6px;}
+.btn-run:hover{background:linear-gradient(135deg,var(--gold),var(--gold-light));}
+.btn-run:disabled{opacity:.4;cursor:not-allowed;}
+.btn-secondary{padding:9px 16px;background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;width:100%;margin-top:6px;transition:all .2s;}
+.btn-secondary:hover{border-color:var(--gold);color:var(--gold);}
+
+/* PLAYERS PANEL */
+.players-multi{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;}
+.player-window{background:var(--dark2);border:1px solid var(--border);border-radius:2px;overflow:hidden;}
+.pw-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(201,168,76,.06);border-bottom:1px solid var(--border);}
+.pw-name{font-family:'Cinzel',serif;font-size:.78rem;color:var(--gold);}
+.pw-team{font-size:.58rem;letter-spacing:2px;text-transform:uppercase;padding:2px 6px;border-radius:2px;}
+.pw-team-A{background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.3);}
+.pw-team-B{background:rgba(96,165,250,.12);color:#93c5fd;border:1px solid rgba(96,165,250,.25);}
+.pw-balance{font-size:.7rem;color:var(--text-dim);}
+.pw-body{padding:12px;}
+.pw-status{font-size:.72rem;color:var(--text-dim);margin-bottom:8px;min-height:18px;}
+.pw-hand{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;min-height:36px;align-items:flex-end;}
+.mini-card{width:30px;height:44px;border-radius:3px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.5);flex-shrink:0;cursor:pointer;border:1px solid rgba(0,0,0,.15);}
+.mini-card:hover{transform:translateY(-4px);}
+.mini-card.espada{color:#1a1a2e;}
+.mini-card.basto{color:#2d4a1e;}
+.mini-card.copa{color:#7c2d12;}
+.mini-card.oro{color:#854d0e;}
+.mini-card.poker-red{color:#dc2626;}
+.mini-card.poker-black{color:#111;}
+.mini-card.back{background:linear-gradient(135deg,#5c1a00,#8B3A00);cursor:default;}
+.mini-card.back:hover{transform:none;}
+.pw-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.pa-btn{padding:6px 10px;font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:1px;text-transform:uppercase;border:1px solid;cursor:pointer;background:transparent;transition:all .15s;}
+.pa-btn:disabled{opacity:.2;cursor:not-allowed;}
+.pa-fold{border-color:#f87171;color:#f87171;}.pa-fold:hover:not(:disabled){background:rgba(239,68,68,.1);}
+.pa-check{border-color:#60a5fa;color:#60a5fa;}.pa-check:hover:not(:disabled){background:rgba(96,165,250,.1);}
+.pa-call{border-color:#4ade80;color:#4ade80;}.pa-call:hover:not(:disabled){background:rgba(74,222,128,.1);}
+.pa-raise{border-color:var(--gold);color:var(--gold);}.pa-raise:hover:not(:disabled){background:rgba(201,168,76,.1);}
+.pa-hit{border-color:#4ade80;color:#4ade80;}.pa-hit:hover:not(:disabled){background:rgba(74,222,128,.1);}
+.pa-stand{border-color:var(--gold);color:var(--gold);}.pa-stand:hover:not(:disabled){background:rgba(201,168,76,.1);}
+.pa-truco{border-color:var(--gold);color:var(--gold);}
+.pa-envido{border-color:#60a5fa;color:#60a5fa;}
+.pa-mazo{border-color:#f87171;color:#f87171;}
+.pa-quiero{border-color:#4ade80;color:#4ade80;}
+.pa-noquiero{border-color:#f87171;color:#f87171;}
+.pw-log{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);padding:6px 8px;max-height:60px;overflow-y:auto;font-size:.64rem;color:var(--text-dim);margin-top:8px;}
+
+/* LOG PANEL */
+.log-panel{background:var(--dark2);border:1px solid var(--border);padding:14px;}
+.log-title{font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.log-clear{padding:4px 10px;font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:1px;text-transform:uppercase;background:transparent;border:1px solid var(--border);color:var(--text-dim);cursor:pointer;}
+.log-clear:hover{border-color:var(--gold);color:var(--gold);}
+.log-stream{max-height:300px;overflow-y:auto;font-size:.7rem;line-height:1.7;font-family:'Courier New',monospace;}
+.log-line{padding:1px 0;}
+.lg{color:var(--gold);}
+.lG{color:#4ade80;}
+.lr{color:#f87171;}
+.lb{color:#60a5fa;}
+.lp{color:#c084fc;}
+.ld{color:var(--text-dim);}
+
+/* STATUS BAR */
+.status-bar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.status-pill{padding:5px 12px;font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border);color:var(--text-dim);display:flex;align-items:center;gap:5px;}
+.dot{width:7px;height:7px;border-radius:50%;}
+.dot-green{background:#4ade80;}
+.dot-yellow{background:#fbbf24;animation:pulse 1s infinite;}
+.dot-red{background:#f87171;}
+.dot-gray{background:#6b7280;}
+
+.raise-row-inline{display:flex;gap:4px;align-items:center;margin-top:4px;}
+.raise-inline-input{padding:5px 8px;background:rgba(255,255,255,.04);border:1px solid rgba(201,168,76,.3);color:var(--text);font-size:.72rem;width:80px;outline:none;text-align:center;}
+.raise-inline-input:focus{border-color:var(--gold);}
+
+.info-box{background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.15);padding:12px 14px;font-size:.75rem;color:var(--text-dim);line-height:1.8;margin-bottom:14px;}
+.info-box strong{color:var(--gold);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">🔧 Dev Testing Tool</div>
+    <div class="header-sub">Casino El Dorado · Solo uso interno</div>
+  </div>
+  <div class="header-actions">
+    <button class="hbtn" onclick="resetAllBots()">↺ Reset Bots $50k</button>
+    <button class="hbtn primary" onclick="createBots()">+ Crear Bots</button>
+    <a class="hbtn" href="/admin" target="_blank">Admin →</a>
+    <a class="hbtn" href="/lobby.html" target="_blank">Casino →</a>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="s-section">
+      <div class="s-title">Iniciar sesión</div>
+      <div class="form-row">
+        <label class="form-label">Usuario</label>
+        <input class="form-input" id="login-user" placeholder="admin o Bot_Alpha" value="Bot_Alpha">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Contraseña</label>
+        <input class="form-input" type="password" id="login-pass" value="BotTest123">
+      </div>
+      <button class="s-btn" style="width:100%;margin-top:4px;" onclick="loginSingle()">→ Login</button>
+    </div>
+
+    <div class="s-section">
+      <div class="s-title">Bots disponibles</div>
+      <div id="bots-status">
+        <div style="font-size:.7rem;color:var(--text-dim)">Presioná "Crear Bots" primero</div>
+      </div>
+    </div>
+
+    <div class="s-section">
+      <div class="s-title">Quick test</div>
+      <button class="s-btn" onclick="setTab('el21')"><span class="s-btn-icon">🃏</span> El 21 (1v1+)</button>
+      <button class="s-btn" onclick="setTab('poker')"><span class="s-btn-icon">♠️</span> Poker Texas</button>
+      <button class="s-btn" onclick="setTab('truco')"><span class="s-btn-icon">🎴</span> Truco 1v1 / 2v2</button>
+    </div>
+
+    <div class="s-section">
+      <div class="s-title">Herramientas</div>
+      <button class="s-btn" onclick="setTab('setup')"><span class="s-btn-icon">⚙️</span> Setup & Config</button>
+      <button class="s-btn" onclick="setTab('log')"><span class="s-btn-icon">📋</span> Log completo</button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <!-- STATUS -->
+    <div class="status-bar" id="status-bar">
+      <div class="status-pill"><div class="dot dot-gray"></div> Sin jugadores activos</div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tab-bar">
+      <div class="tab active" id="tab-setup" onclick="setTab('setup')">⚙️ Setup</div>
+      <div class="tab" id="tab-el21"  onclick="setTab('el21')">El 21</div>
+      <div class="tab" id="tab-poker" onclick="setTab('poker')">Poker</div>
+      <div class="tab" id="tab-truco" onclick="setTab('truco')">Truco</div>
+      <div class="tab" id="tab-log"   onclick="setTab('log')">Log</div>
+    </div>
+
+    <!-- SETUP -->
+    <div class="panel active" id="panel-setup">
+      <div class="info-box">
+        <strong>Cómo usar:</strong><br>
+        1. Hacé click en <strong>"Crear Bots"</strong> (arriba) — crea 6 bots con $50.000 c/u<br>
+        2. Elegí un juego (tabs arriba)<br>
+        3. Seleccioná cuántos bots querés conectar y el nivel<br>
+        4. Presioná <strong>"Conectar jugadores"</strong> — todos se unen a la misma mesa<br>
+        5. Jugá desde cada ventana de jugador individualmente<br>
+        6. Si algo falla, mirá el <strong>Log</strong> para el error exacto
+      </div>
+      <div class="setup-grid">
+        <div class="setup-card">
+          <div class="setup-card-title">🃏 El 21</div>
+          <div class="form-row">
+            <label class="form-label">Jugadores (2–6)</label>
+            <select class="form-select" id="el21-players">
+              <option value="2">2 jugadores</option>
+              <option value="3" selected>3 jugadores</option>
+              <option value="4">4 jugadores</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Nivel</label>
+            <select class="form-select" id="el21-level">
+              <option value="500" selected>Básica $500</option>
+              <option value="1000">Media $1.000</option>
+              <option value="5000">Alta $5.000</option>
+            </select>
+          </div>
+          <button class="btn-run" onclick="startTest('el21')">▶ Conectar jugadores</button>
+          <button class="btn-secondary" onclick="disconnectAll('el21')">✕ Desconectar todos</button>
+        </div>
+
+        <div class="setup-card">
+          <div class="setup-card-title">♠️ Poker Texas Hold'em</div>
+          <div class="form-row">
+            <label class="form-label">Jugadores (2–6)</label>
+            <select class="form-select" id="poker-players">
+              <option value="2" selected>2 jugadores</option>
+              <option value="3">3 jugadores</option>
+              <option value="4">4 jugadores</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Nivel</label>
+            <select class="form-select" id="poker-level">
+              <option value="500" selected>Básica $500</option>
+              <option value="1000">Media $1.000</option>
+              <option value="5000">Alta $5.000</option>
+            </select>
+          </div>
+          <button class="btn-run" onclick="startTest('poker')">▶ Conectar jugadores</button>
+          <button class="btn-secondary" onclick="disconnectAll('poker')">✕ Desconectar todos</button>
+        </div>
+
+        <div class="setup-card">
+          <div class="setup-card-title">🎴 Truco</div>
+          <div class="form-row">
+            <label class="form-label">Modo</label>
+            <select class="form-select" id="truco-mode">
+              <option value="1v1" selected>1 vs 1</option>
+              <option value="2v2">2 vs 2</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Nivel</label>
+            <select class="form-select" id="truco-level">
+              <option value="500" selected>Básica $500</option>
+              <option value="1000">Media $1.000</option>
+              <option value="5000">Alta $5.000</option>
+            </select>
+          </div>
+          <button class="btn-run" onclick="startTest('truco')">▶ Conectar jugadores</button>
+          <button class="btn-secondary" onclick="disconnectAll('truco')">✕ Desconectar todos</button>
+        </div>
+
+        <div class="setup-card">
+          <div class="setup-card-title">🔑 Gestión de bots</div>
+          <div style="font-size:.72rem;color:var(--text-dim);line-height:1.8;margin-bottom:12px;">
+            <strong style="color:var(--gold)">Usuarios bot:</strong> Bot_Alpha hasta Bot_Zeta<br>
+            <strong style="color:var(--gold)">Contraseña:</strong> BotTest123<br>
+            <strong style="color:var(--gold)">Balance inicial:</strong> $50.000 cada uno
+          </div>
+          <button class="btn-run" onclick="createBots()">+ Crear / resetear bots</button>
+          <button class="btn-secondary" onclick="resetAllBots()">↺ Resetear balances a $50k</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EL 21 -->
+    <div class="panel" id="panel-el21">
+      <div id="el21-windows" class="players-multi"></div>
+    </div>
+
+    <!-- POKER -->
+    <div class="panel" id="panel-poker">
+      <div id="poker-windows" class="players-multi"></div>
+    </div>
+
+    <!-- TRUCO -->
+    <div class="panel" id="panel-truco">
+      <div id="truco-windows" class="players-multi"></div>
+    </div>
+
+    <!-- LOG -->
+    <div class="panel" id="panel-log">
+      <div class="log-panel">
+        <div class="log-title">
+          Log en tiempo real
+          <button class="log-clear" onclick="clearLog()">Limpiar</button>
+        </div>
+        <div class="log-stream" id="global-log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────
+const API = '';
+const BOT_NAMES = ['Bot_Alpha','Bot_Beta','Bot_Gamma','Bot_Delta','Bot_Epsilon','Bot_Zeta'];
+const BOT_PASS  = 'BotTest123';
+const SYM  = { espada:'⚔', basto:'♣', copa:'♥', oro:'◆' };
+const CLS  = { espada:'espada', basto:'basto', copa:'copa', oro:'oro' };
+
+// Estado global
+const sessions = {}; // { gameType: [{ name, token, userId, socket, hand, isMyTurn, ... }] }
+
+// ── LOG ────────────────────────────────────────────────────────
+function log(msg, cls='ld') {
+  const el = document.getElementById('global-log');
+  const d  = document.createElement('div');
+  const ts = new Date().toLocaleTimeString('es-AR');
+  d.className = 'log-line ' + cls;
+  d.textContent = `[${ts}] ${msg}`;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+function clearLog() { document.getElementById('global-log').innerHTML = ''; }
+
+// ── TABS ───────────────────────────────────────────────────────
+function setTab(name) {
+  document.querySelectorAll('.tab,.panel').forEach(e => e.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  document.querySelectorAll('.s-btn').forEach(b => b.classList.remove('active'));
+}
+
+// ── API ────────────────────────────────────────────────────────
+async function apiLogin(username, password) {
+  try {
+    const r = await fetch(`${API}/api/auth/login`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username, password })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Login failed');
+    return d;
+  } catch(e) { log(`❌ Login ${username}: ${e.message}`, 'lr'); return null; }
+}
+
+async function loginSingle() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const d = await apiLogin(u, p);
+  if (d) {
+    localStorage.setItem('casino_token', d.token);
+    localStorage.setItem('casino_user', JSON.stringify(d));
+    log(`✓ Logged in as ${u} (balance: $${Number(d.balance).toLocaleString('es-AR')})`, 'lG');
+    alert(`✓ Sesión iniciada como ${u}\nBalance: $${Number(d.balance).toLocaleString('es-AR')}\nToken guardado en localStorage.`);
+  }
+}
+
+// ── BOT MANAGEMENT ─────────────────────────────────────────────
+async function createBots() {
+  const adminToken = await getAdminToken();
+  if (!adminToken) return alert('Necesitás estar logueado como admin. Usá el formulario de la izquierda.');
+  log('Creando bots...', 'lg');
+  const r = await fetch(`${API}/api/admin/test/create-bots`, {
+    method:'POST', headers:{ 'Authorization': `Bearer ${adminToken}` }
+  });
+  const d = await r.json();
+  if (d.success) {
+    log(`✓ Bots listos: ${d.bots.map(b=>b.username).join(', ')}`, 'lG');
+    renderBotsStatus(d.bots);
+    alert(`✓ Bots creados/actualizados:\n${d.bots.map(b=>`${b.username}: ${b.action}`).join('\n')}\n\nContraseña: ${d.password}`);
+  } else {
+    log('❌ Error creando bots: ' + JSON.stringify(d), 'lr');
+  }
+}
+
+async function resetAllBots() {
+  const adminToken = await getAdminToken();
+  if (!adminToken) return alert('Necesitás estar logueado como admin.');
+  const r = await fetch(`${API}/api/admin/test/reset-bots`, {
+    method:'POST', headers:{ 'Authorization': `Bearer ${adminToken}` }
+  });
+  const d = await r.json();
+  if (d.success) { log('✓ Balances de bots reseteados a $50.000', 'lG'); alert('✓ ' + d.message); }
+}
+
+async function getAdminToken() {
+  const stored = localStorage.getItem('casino_token');
+  if (stored) return stored;
+  const adminUser = document.getElementById('login-user').value;
+  const adminPass = document.getElementById('login-pass').value;
+  const d = await apiLogin(adminUser, adminPass);
+  if (d) { localStorage.setItem('casino_token', d.token); return d.token; }
+  return null;
+}
+
+function renderBotsStatus(bots) {
+  const el = document.getElementById('bots-status');
+  el.innerHTML = bots.map(b => `
+    <div class="bot-card">
+      <div class="bot-name"><span class="bot-status offline" id="dot-${b.username}"></span>${b.username}</div>
+      <div class="bot-balance" id="bal-${b.username}">$50.000</div>
+    </div>`).join('');
+}
+
+// ── MAIN TEST RUNNER ───────────────────────────────────────────
+async function startTest(gameType) {
+  let numPlayers, level, mode;
+
+  if (gameType === 'el21') {
+    numPlayers = parseInt(document.getElementById('el21-players').value);
+    level      = parseInt(document.getElementById('el21-level').value);
+  } else if (gameType === 'poker') {
+    numPlayers = parseInt(document.getElementById('poker-players').value);
+    level      = parseInt(document.getElementById('poker-level').value);
+  } else if (gameType === 'truco') {
+    mode       = document.getElementById('truco-mode').value;
+    level      = parseInt(document.getElementById('truco-level').value);
+    numPlayers = mode === '2v2' ? 4 : 2;
+  }
+
+  log(`▶ Iniciando test ${gameType.toUpperCase()} con ${numPlayers} jugadores (nivel $${level})`, 'lp');
+
+  // Login bots
+  const botSessions = [];
+  for (let i = 0; i < numPlayers; i++) {
+    const name = BOT_NAMES[i];
+    const d    = await apiLogin(name, BOT_PASS);
+    if (!d) { log(`❌ No se pudo loguear ${name}`, 'lr'); continue; }
+    botSessions.push({ name, token: d.token, userId: d.id, balance: d.balance, hand: [], isMyTurn: false, status: 'logged', pendingCanto: null });
+    log(`✓ ${name} logueado (balance: $${Number(d.balance).toLocaleString('es-AR')})`, 'lG');
+  }
+
+  if (botSessions.length < numPlayers) {
+    alert('No se pudieron loguear todos los bots. ¿Los creaste con "Crear Bots"?');
+    return;
+  }
+
+  sessions[gameType] = botSessions;
+  renderPlayerWindows(gameType, botSessions, level, mode);
+  setTab(gameType);
+
+  // Conectar sockets
+  for (const sess of botSessions) {
+    await new Promise(r => setTimeout(r, 200)); // pequeño delay entre conexiones
+    connectPlayer(gameType, sess, level, mode, botSessions);
+  }
+}
+
+function renderPlayerWindows(gameType, bots, level, mode) {
+  const container = document.getElementById(gameType + '-windows');
+  container.innerHTML = bots.map((b, i) => `
+    <div class="player-window" id="pw-${gameType}-${i}">
+      <div class="pw-header">
+        <div>
+          <div class="pw-name" id="pwn-${gameType}-${i}">
+            ${b.name}
+            ${gameType === 'truco' && mode ? `<span class="pw-team pw-team-${i < (mode==='2v2'?2:1) ? 'A':'B'}">${i < (mode==='2v2'?2:1)?'A':'B'}</span>` : ''}
+          </div>
+          <div class="pw-balance" id="pwb-${gameType}-${i}">$${Number(b.balance).toLocaleString('es-AR')}</div>
+        </div>
+        <div style="font-size:.62rem;color:var(--text-dim);" id="pws-${gameType}-${i}">Conectando...</div>
+      </div>
+      <div class="pw-body">
+        <div class="pw-status" id="pwst-${gameType}-${i}">Esperando...</div>
+        <div class="pw-hand" id="pwh-${gameType}-${i}"></div>
+        <div class="pw-actions" id="pwa-${gameType}-${i}"></div>
+        <div class="pw-log" id="pwl-${gameType}-${i}"></div>
+      </div>
+    </div>`).join('');
+}
+
+function plog(gameType, idx, msg, cls) {
+  const el = document.getElementById(`pwl-${gameType}-${idx}`);
+  if (!el) return;
+  el.insertAdjacentHTML('beforeend', `<div class="${cls||''}">${msg}</div>`);
+  el.scrollTop = el.scrollHeight;
+  log(`[${document.getElementById(`pwn-${gameType}-${idx}`)?.textContent?.trim().split('\n')[0]||'?'}] ${msg}`, cls);
+}
+
+function pstatus(gameType, idx, msg) {
+  const el = document.getElementById(`pws-${gameType}-${idx}`);
+  if (el) el.textContent = msg;
+}
+
+function pstate(gameType, idx, msg) {
+  const el = document.getElementById(`pwst-${gameType}-${idx}`);
+  if (el) el.textContent = msg;
+}
+
+function setActions(gameType, idx, html) {
+  const el = document.getElementById(`pwa-${gameType}-${idx}`);
+  if (el) el.innerHTML = html;
+}
+
+function renderHandEl21(gameType, idx, cards, value, isMyTurn) {
+  const el = document.getElementById(`pwh-${gameType}-${idx}`);
+  if (!el) return;
+  const isRed = c => ['♥','♦'].includes(c.s);
+  el.innerHTML = cards.map(c =>
+    `<div class="mini-card ${isRed(c)?'poker-red':'poker-black'}">${c.r}<br>${c.s}</div>`
+  ).join('') + `<span style="font-size:.75rem;color:var(--gold);margin-left:8px;font-family:'Cinzel',serif">${value}</span>`;
+}
+
+function renderHandPoker(gameType, idx, cards) {
+  const el = document.getElementById(`pwh-${gameType}-${idx}`);
+  if (!el) return;
+  const isRed = c => ['♥','♦'].includes(c.s);
+  el.innerHTML = cards.map(c =>
+    `<div class="mini-card ${isRed(c)?'poker-red':'poker-black'}">${c.r}<br>${c.s}</div>`
+  ).join('');
+}
+
+function renderHandTruco(gameType, idx, cards, isMyTurn, sess, botIdx) {
+  const el = document.getElementById(`pwh-${gameType}-${idx}`);
+  if (!el) return;
+  el.innerHTML = cards.map((c, ci) => {
+    const sym = SYM[c.p]||c.p; const cl = CLS[c.p]||'';
+    const onclick = isMyTurn ? `onclick="playTrucoCard(${botIdx}, ${ci})"` : '';
+    return `<div class="mini-card ${cl}" ${onclick} title="${c.n} de ${c.p}" style="${isMyTurn?'cursor:pointer':''}">${c.n}<br><span style="font-size:.55rem">${sym}</span></div>`;
+  }).join('');
+}
+
+// ── EL 21 ──────────────────────────────────────────────────────
+function connectPlayer(gameType, sess, level, mode, allSessions) {
+  const idx = allSessions.indexOf(sess);
+  const socket = io({ auth: { token: sess.token } });
+  sess.socket = socket;
+  sess.gameType = gameType;
+
+  socket.on('connect', () => {
+    pstatus(gameType, idx, '🟢 Online');
+    updateDot(sess.name, 'online');
+    socket.emit(`${gameType}:getTables`);
+    setTimeout(() => {
+      if (gameType === 'el21')  socket.emit('el21:join',  { level });
+      if (gameType === 'poker') socket.emit('poker:join', { level });
+      if (gameType === 'truco') socket.emit('truco:join', { level, mode });
+    }, 300);
+  });
+
+  socket.on('connect_error', e => { plog(gameType, idx, '❌ ' + e.message, 'lr'); pstatus(gameType, idx, '🔴 Error'); });
+  socket.on('disconnect', () => { pstatus(gameType, idx, '⚫ Desconectado'); updateDot(sess.name, 'offline'); });
+
+  if (gameType === 'el21')  setupEl21Socket(socket, sess, idx, allSessions);
+  if (gameType === 'poker') setupPokerSocket(socket, sess, idx, allSessions);
+  if (gameType === 'truco') setupTrucoSocket(socket, sess, idx, allSessions, mode, level);
+}
+
+function setupEl21Socket(socket, sess, idx, all) {
+  socket.on('el21:joined',      d => { plog('el21', idx, `Mesa ${d.tableId.slice(-6)} — entrada $${d.entry}`, 'lg'); pstate('el21', idx, '⏳ Esperando jugadores...'); });
+  socket.on('el21:playerJoined',d => { pstate('el21', idx, `Sala: ${d.players.length}/${d.players.length + d.needed} jugadores`); });
+  socket.on('el21:countdown',   d => { pstate('el21', idx, `⏱ Comenzando en ${d.seconds}s`); });
+  socket.on('el21:gameStart',   d => {
+    plog('el21', idx, `🃏 Partida! Pozo: $${d.pot}. Primer turno: ${d.currentPlayer}`, 'lg');
+    pstate('el21', idx, `Turno de ${d.currentPlayer}`);
+  });
+  socket.on('el21:yourCards',   d => {
+    sess.hand = d.cards; sess.value = d.value;
+    renderHandEl21('el21', idx, d.cards, d.value, false);
+    plog('el21', idx, `Tus cartas: ${d.cards.map(c=>c.r+c.s).join(', ')} = ${d.value}`, 'lb');
+  });
+  socket.on('el21:turnChange',  d => {
+    const isMe = d.currentPlayer === sess.name;
+    sess.isMyTurn = isMe;
+    pstate('el21', idx, isMe ? '🎯 TU TURNO' : `Turno: ${d.currentPlayer}`);
+    renderHandEl21('el21', idx, sess.hand, sess.value, isMe);
+    if (isMe) setActions('el21', idx, `
+      <button class="pa-btn pa-hit"   onclick="el21Action(${idx},'hit')">Pedir</button>
+      <button class="pa-btn pa-stand" onclick="el21Action(${idx},'stand')">Plantarse</button>`);
+    else setActions('el21', idx, '');
+  });
+  socket.on('el21:hit',    d => { if(d.playerId===sess.userId){ sess.hand.push(d.card); sess.value=d.value; renderHandEl21('el21',idx,sess.hand,sess.value,false); } plog('el21',idx,`${d.username} pidió carta: ${d.value}${d.bust?' BUST':''}`,d.bust?'lr':'ld'); });
+  socket.on('el21:stood',  d => plog('el21', idx, `${d.username} se plantó`, 'ld'));
+  socket.on('el21:autoStand', d => plog('el21', idx, `⏰ Auto-plantado: ${d.username}`, 'ld'));
+  socket.on('el21:gameEnd',  d => {
+    const won = d.winners?.some(w=>w.id===sess.userId);
+    plog('el21', idx, `🏁 Fin: ${won?'GANASTE +$'+d.prize:'Perdiste'}`, won?'lG':'lr');
+    pstate('el21', idx, won ? '🏆 Ganaste' : '😔 Perdiste');
+    setActions('el21', idx, `<button class="pa-btn pa-call" onclick="rejoinEl21(${idx})">↺ Jugar de nuevo</button>`);
+    refreshBotBalance(sess, 'el21', idx);
+  });
+  socket.on('el21:error',  msg => plog('el21', idx, '❌ ' + msg, 'lr'));
+}
+
+function setupPokerSocket(socket, sess, idx, all) {
+  socket.on('poker:joined',      d => { plog('poker', idx, `Mesa ${d.tableId.slice(-6)} — buy-in $${d.entry}`, 'lg'); pstate('poker', idx, '⏳ Esperando...'); });
+  socket.on('poker:playerJoined',d => pstate('poker', idx, `${d.players.length} jugadores en sala`));
+  socket.on('poker:countdown',   d => pstate('poker', idx, `⏱ ${d.seconds}s`));
+  socket.on('poker:yourHand',    d => {
+    sess.hand = d.hand;
+    renderHandPoker('poker', idx, d.hand);
+    plog('poker', idx, `Tus cartas: ${d.hand.map(c=>c.r+c.s).join(', ')}`, 'lb');
+  });
+  socket.on('poker:gameStart',   d => {
+    plog('poker', idx, `♠ Partida! Pozo: $${d.pot} · Turno: ${d.currentPlayer}`, 'lg');
+    pstate('poker', idx, `Turno: ${d.currentPlayer}`);
+  });
+  socket.on('poker:turnChange',  d => {
+    const isMe = d.currentPlayer === sess.name;
+    sess.isMyTurn = isMe;
+    sess.minBet   = d.minBet || 0;
+    pstate('poker', idx, isMe ? '🎯 TU TURNO' : `Turno: ${d.currentPlayer}`);
+    if (d.community?.length) plog('poker', idx, `Comunitarias: ${d.community.map(c=>c.r+c.s).join(' ')}`, 'ld');
+    if (isMe) setActions('poker', idx, `
+      <button class="pa-btn pa-fold"  onclick="pokerAction(${idx},'fold')">Fold</button>
+      <button class="pa-btn pa-check" onclick="pokerAction(${idx},'check')">Check</button>
+      <button class="pa-btn pa-call"  onclick="pokerAction(${idx},'call')">Call</button>
+      <div class="raise-row-inline">
+        <input class="raise-inline-input" id="raise-${idx}" type="number" value="${sess.minBet*2||500}" placeholder="monto">
+        <button class="pa-btn pa-raise" onclick="pokerAction(${idx},'raise')">Raise</button>
+      </div>`);
+    else setActions('poker', idx, '');
+  });
+  socket.on('poker:action',  d => plog('poker', idx, `${d.username}: ${d.action}${d.amount?' $'+d.amount:''}`, 'ld'));
+  socket.on('poker:gameEnd', d => {
+    const won = d.winners?.some(w=>w.id===sess.userId);
+    plog('poker', idx, `🏁 Fin: ${won?'GANASTE +$'+d.prize:'Perdiste'} · ${d.community?.map(c=>c.r+c.s).join(' ')||''}`, won?'lG':'lr');
+    pstate('poker', idx, won ? '🏆 Ganaste' : '😔 Perdiste');
+    setActions('poker', idx, `<button class="pa-btn pa-call" onclick="rejoinPoker(${idx})">↺ Jugar de nuevo</button>`);
+    refreshBotBalance(sess, 'poker', idx);
+  });
+  socket.on('poker:error',   msg => plog('poker', idx, '❌ ' + msg, 'lr'));
+}
+
+function setupTrucoSocket(socket, sess, idx, all, mode, level) {
+  socket.on('truco:joined',      d => { plog('truco',idx,`Mesa ${d.tableId.slice(-6)} — Equipo ${d.team} — $${d.entry}`,'lg'); sess.team=d.team; pstate('truco',idx,`Equipo ${d.team} · Esperando...`); });
+  socket.on('truco:playerJoined',d => pstate('truco',idx,`Sala: ${d.players.length} jugadores`));
+  socket.on('truco:countdown',   d => pstate('truco',idx,`⏱ ${d.seconds}s`));
+  socket.on('truco:yourHand',    d => {
+    sess.hand = d.hand;
+    renderHandTruco('truco', idx, d.hand, false, sess, idx);
+    plog('truco',idx,`Mano: ${d.hand.map(c=>`${c.n}${SYM[c.p]||c.p}`).join(' ')}`, 'lb');
+  });
+  socket.on('truco:gameStart',   d => {
+    plog('truco',idx,`🃏 ¡Partida! Turno: ${d.currentPlayer}`,'lg');
+    pstate('truco',idx,`Turno: ${d.currentPlayer}`);
+    updateTurnTruco(sess, idx, d.currentPlayer, d.tanto);
+  });
+  socket.on('truco:newHand',     d => {
+    plog('truco',idx,'── Nueva mano ──','lg');
+    pstate('truco',idx,`Turno: ${d.currentPlayer}`);
+    updateTurnTruco(sess, idx, d.currentPlayer, d.tanto);
+    sess.pendingCanto = null;
+    setActions('truco',idx,'');
+  });
+  socket.on('truco:cardPlayed',  d => {
+    if(d.playerId===sess.userId){ const ci=sess.hand.findIndex(c=>c.n===d.carta.n&&c.p===d.carta.p); if(ci>=0) sess.hand.splice(ci,1); }
+    plog('truco',idx,`${d.username} tiró ${d.carta.n}${SYM[d.carta.p]||d.carta.p}`,'ld');
+    if(!d.roundOver) updateTurnTruco(sess, idx, d.nextPlayer, null);
+  });
+  socket.on('truco:roundResult', d => plog('truco',idx,`Ronda ${d.round+1}: ${d.winner==='parda'?'Parda':('Gana Equipo '+d.winner)}`,d.winner===sess.team?'lG':'lr'));
+  socket.on('truco:handOver',    d => { plog('truco',idx,`Mano → Equipo ${d.handResult.winner}`,'lg'); });
+  socket.on('truco:trucoCalled', d => {
+    plog('truco',idx,`${d.caller} cantó ¡${d.level.toUpperCase()}!`,'lg');
+    if(d.callerTeam!==sess.team && d.callerPlayerId!==sess.userId){
+      sess.pendingCanto='truco';
+      setActions('truco',idx,`
+        <button class="pa-btn pa-quiero" onclick="trucoRespond(${idx},true)">✓ Quiero Truco</button>
+        <button class="pa-btn pa-noquiero" onclick="trucoRespond(${idx},false)">✗ No quiero</button>`);
+    }
+  });
+  socket.on('truco:trucoResponse',d => { plog('truco',idx,`Truco: ${d.accepted?'ACEPTADO':'RECHAZADO'}`,'lg'); sess.pendingCanto=null; setActions('truco',idx,''); });
+  socket.on('truco:envidoCalled', d => {
+    plog('truco',idx,`${d.caller} cantó ${d.level.toUpperCase()}`,'lb');
+    if(d.callerTeam!==sess.team && d.callerPlayerId!==sess.userId){
+      sess.pendingCanto='envido';
+      setActions('truco',idx,`
+        <button class="pa-btn pa-quiero" onclick="trucoRespond(${idx},true)">✓ Quiero Envido</button>
+        <button class="pa-btn pa-noquiero" onclick="trucoRespond(${idx},false)">✗ No quiero</button>`);
+    }
+  });
+  socket.on('truco:envidoResponse',d => { plog('truco',idx,`Envido: ${d.accepted?'ACEPTADO ('+d.pts+'pts)':'RECHAZADO'}`,'lb'); sess.pendingCanto=null; setActions('truco',idx,''); });
+  socket.on('truco:alMazo',  d => plog('truco',idx,`${d.loserName} al mazo → Equipo ${d.winner}`,'lr'));
+  socket.on('truco:gameEnd', d => {
+    const won=d.winners?.some(w=>w.id===sess.userId);
+    plog('truco',idx,`🏁 ${won?'GANASTE +$'+d.prize:'Perdiste'} · A:${d.tanto.A} B:${d.tanto.B}`,won?'lG':'lr');
+    pstate('truco',idx,won?'🏆 Ganaste':'😔 Perdiste');
+    refreshBotBalance(sess,'truco',idx);
+  });
+  socket.on('truco:error', msg => plog('truco',idx,'❌ '+msg,'lr'));
+}
+
+function updateTurnTruco(sess, idx, currentPlayer, tanto) {
+  const isMe = currentPlayer === sess.name;
+  sess.isMyTurn = isMe;
+  pstate('truco', idx, isMe ? '🎯 TU TURNO' : `Turno: ${currentPlayer}`);
+  renderHandTruco('truco', idx, sess.hand, isMe, sess, idx);
+  if (tanto) plog('truco', idx, `Tanto — A:${tanto.A} B:${tanto.B}`, 'lg');
+  if (isMe && !sess.pendingCanto) {
+    setActions('truco', idx, `
+      <button class="pa-btn pa-truco"  onclick="trucoCall(${idx},'truco')">¡Truco!</button>
+      <button class="pa-btn pa-envido" onclick="trucoCall(${idx},'envido')">Envido</button>
+      <button class="pa-btn pa-mazo"   onclick="trucoAlMazo(${idx})">Al mazo</button>`);
+  } else if (!isMe) {
+    setActions('truco', idx, '');
+  }
+}
+
+// ── GAME ACTIONS ───────────────────────────────────────────────
+function el21Action(idx, action) {
+  const sess = sessions.el21?.[idx];
+  if (!sess?.socket) return;
+  sess.socket.emit('el21:' + action);
+  setActions('el21', idx, '');
+}
+
+function pokerAction(idx, action) {
+  const sess = sessions.poker?.[idx];
+  if (!sess?.socket) return;
+  let amount;
+  if (action === 'raise') { amount = parseInt(document.getElementById(`raise-${idx}`)?.value) || sess.minBet*2; }
+  sess.socket.emit('poker:action', { action, amount });
+  setActions('poker', idx, '');
+}
+
+function playTrucoCard(idx, cardIndex) {
+  const sess = sessions.truco?.[idx];
+  if (!sess?.socket || !sess.isMyTurn) return;
+  sess.socket.emit('truco:playCard', { cardIndex });
+}
+
+function trucoCall(idx, type) {
+  const sess = sessions.truco?.[idx];
+  if (!sess?.socket) return;
+  if (type === 'truco') sess.socket.emit('truco:callTruco', { level:'truco' });
+  else sess.socket.emit('truco:callEnvido', { level:'envido' });
+  setActions('truco', idx, '');
+}
+
+function trucoAlMazo(idx) {
+  const sess = sessions.truco?.[idx];
+  if (!sess?.socket) return;
+  sess.socket.emit('truco:irseAlMazo');
+}
+
+function trucoRespond(idx, accept) {
+  const sess = sessions.truco?.[idx];
+  if (!sess?.socket || !sess.pendingCanto) return;
+  if (sess.pendingCanto === 'truco') sess.socket.emit('truco:respondTruco', { accept });
+  else sess.socket.emit('truco:respondEnvido', { accept });
+  sess.pendingCanto = null;
+  setActions('truco', idx, '');
+}
+
+function rejoinEl21(idx) {
+  const sess = sessions.el21?.[idx];
+  if (!sess?.socket) return;
+  const level = parseInt(document.getElementById('el21-level').value);
+  sess.socket.emit('el21:join', { level });
+}
+
+function rejoinPoker(idx) {
+  const sess = sessions.poker?.[idx];
+  if (!sess?.socket) return;
+  const level = parseInt(document.getElementById('poker-level').value);
+  sess.socket.emit('poker:join', { level });
+}
+
+// ── UTILS ──────────────────────────────────────────────────────
+function disconnectAll(gameType) {
+  const sesses = sessions[gameType] || [];
+  for (const s of sesses) { if (s.socket) { s.socket.disconnect(); } }
+  sessions[gameType] = [];
+  const container = document.getElementById(gameType + '-windows');
+  if (container) container.innerHTML = `<div style="color:var(--text-dim);font-size:.8rem;padding:20px">Todos desconectados. Configurá una nueva sesión en Setup.</div>`;
+  log(`✓ Todos los jugadores de ${gameType} desconectados`, 'lg');
+}
+
+async function refreshBotBalance(sess, gameType, idx) {
+  try {
+    const r = await fetch(`${API}/api/auth/me`, { headers: { 'Authorization': `Bearer ${sess.token}` } });
+    const d = await r.json();
+    const el = document.getElementById(`pwb-${gameType}-${idx}`);
+    if (el) el.textContent = '$' + Number(d.balance).toLocaleString('es-AR');
+    const bal = document.getElementById(`bal-${sess.name}`);
+    if (bal) bal.textContent = '$' + Number(d.balance).toLocaleString('es-AR');
+  } catch(e) {}
+}
+
+function updateDot(name, state) {
+  const el = document.getElementById(`dot-${name}`);
+  if (!el) return;
+  el.className = `bot-status ${state}`;
+}
+
+// Init
+log('🔧 Dev Testing Tool cargado. Presioná "Crear Bots" para empezar.', 'lp');
+</script>
+</body>
+</html>

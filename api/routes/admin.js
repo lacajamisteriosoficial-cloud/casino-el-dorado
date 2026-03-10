@@ -276,4 +276,49 @@ router.post('/cajas/winners/:roundId/transfer', async (req, res) => {
     }
 });
 
+// ── Crear usuarios de testing ─────────────────────────────────
+router.post('/test/create-bots', async (req, res) => {
+    const bcrypt = require('bcrypt');
+    const bots = [
+        { username: 'Bot_Alpha',   email: 'bot_alpha@test.casino',   balance: 50000 },
+        { username: 'Bot_Beta',    email: 'bot_beta@test.casino',    balance: 50000 },
+        { username: 'Bot_Gamma',   email: 'bot_gamma@test.casino',   balance: 50000 },
+        { username: 'Bot_Delta',   email: 'bot_delta@test.casino',   balance: 50000 },
+        { username: 'Bot_Epsilon', email: 'bot_epsilon@test.casino', balance: 50000 },
+        { username: 'Bot_Zeta',    email: 'bot_zeta@test.casino',    balance: 50000 },
+    ];
+    const hash = await bcrypt.hash('BotTest123', 10);
+    const created = [];
+    for (const bot of bots) {
+        try {
+            const ex = await query('SELECT id FROM users WHERE username=$1', [bot.username]);
+            if (ex.rows.length) {
+                // Solo resetear balance
+                await query('UPDATE users SET balance=$1 WHERE username=$2', [bot.balance, bot.username]);
+                created.push({ username: bot.username, action: 'balance_reset' });
+            } else {
+                const r = await query(
+                    `INSERT INTO users (username, email, password_hash, balance, is_active)
+                     VALUES ($1,$2,$3,$4,true) RETURNING id, username`,
+                    [bot.username, bot.email, hash, bot.balance]
+                );
+                created.push({ username: bot.username, action: 'created', id: r.rows[0].id });
+            }
+        } catch(e) {
+            created.push({ username: bot.username, action: 'error', error: e.message });
+        }
+    }
+    res.json({ success: true, bots: created, password: 'BotTest123' });
+});
+
+// Resetear balance de bots
+router.post('/test/reset-bots', async (req, res) => {
+    try {
+        await query(`UPDATE users SET balance=50000 WHERE username LIKE 'Bot_%'`);
+        res.json({ success: true, message: 'Balance de bots reseteado a $50.000' });
+    } catch(e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 module.exports = router;
